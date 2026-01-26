@@ -6,12 +6,12 @@ date: "2026-01-20"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(dplyr)
 ```
 
 Cleaning seed data to remove incomplete data points 
 ```{r}
-library(tidyr)
-library(dplyr)
 bigseeds <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/RFseed_data - Sydney RF seeds.csv")
 
 # convert empty or 0 blooms to NAs
@@ -28,10 +28,27 @@ completeseeds <- bigseeds %>%
 # select only needed columns 
 neededData <- subset(completeseeds, 
                      select = c(Block, Plot, genSpec, sp, fc, OsPerb, CsPerb))
- 
-
-  
-
 
 ```
+ 
+ Read in Bee data and prepare to be joined to seed data 
+```{r}
+BeeNos <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/BEE IDs - RF 24 - Sheet1.csv")
 
+BeePlants <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Specimens_Riverfront_JA - Sheet1.csv")
+
+# syrphris flies = Allograpta spp., Metasyrphus spp., Paragus spp., Scaeva spp., Sphaerophoria spp., Syrphus spp., Toxomerus spp., other Syrphidae
+
+# remove uneeded columns
+BeePlantsOnly <- subset(BeePlants, select = -c (FreezerBoxNum, Collector, SampleRound, Date, Year, Notes))
+
+# rename to match ID data 
+BeePlantsOnly <- BeePlantsOnly %>%
+  rename("sp.no" = Unique.ID, 
+          "plant" = FieldPlantID)  
+
+# join Bee plants to genus 
+Pollinators <- BeePlantsOnly %>%
+  inner_join(BeeNos)
+```
+ 
