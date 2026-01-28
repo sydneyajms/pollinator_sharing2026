@@ -12,7 +12,7 @@ library(dplyr)
 
 Cleaning seed data to remove incomplete data points 
 ```{r}
-bigseeds <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/RFseed_data - Sydney RF seeds.csv")
+bigseeds <- read.csv("RFseed_data - Sydney RF seeds.csv")
 
 # convert empty or 0 blooms to NAs
 bigseeds$Cblooms <- as.integer(bigseeds$Cblooms)
@@ -30,14 +30,14 @@ neededData <- subset(completeseeds,
                      select = c(Block, Plot, genSpec, sp, fc, OsPerb, CsPerb))
 
 # save as cleaned csv file 
-write.csv(neededData, "/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Cleaned_seeds.csv", row.names = FALSE) 
+write.csv(neededData, "Cleaned_seeds.csv", row.names = FALSE) 
 ```
  
  Read in Bee data and prepare to be joined to seed data 
 ```{r}
-BeeNos <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/BEE IDs - RF 24 - Sheet1.csv") 
+BeeNos <- read.csv("BEE IDs - RF 24 - Sheet1.csv") 
 
-BeePlants <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Specimens_Riverfront_JA - Sheet1.csv")
+BeePlants <- read.csv("Specimens_Riverfront_JA - Sheet1.csv")
 
 # remove uneeded columns
 BeePlantsOnly <- subset(BeePlants, select = -c (FreezerBoxNum, Collector, SampleRound, Date, Year, Notes))
@@ -54,20 +54,20 @@ Pollinators <- BeePlantsOnly %>%
 # remove all non-pollinators (keep syrphid genera only) and rename plants to codes
 EffPollinators <- Pollinators %>%
   filter(!Genus %in% c("unidentifiable ", "beetle larve", "gymnosoma", "rhamphomyia ", "cylindromyia"))
-  rename("CLAPAR" = ,
-         "MYODIS" = ,
-         "COLLIGRA" = ,
-         "CALMEN" = ,
-         "CLAPUR" = CP,
-         "CLAAMO" = CA
-         "GLAAMO" = ,
-         "MAOSAT" = ,
-         "MADELE" = ME,
-         "NAVINT" = ,
-         "NAVSQUA" = ,
-         )
+
+EffPollinators$plant <- recode(EffPollinators$plant, 
+         "PC" = "PLECON",
+         "PF" = "PLAFIG",
+         "CP" = "CLAPUR",
+         "GD" = "GERDIS",
+         "GC" = "GILCAP",
+         "ME" = "MADELE",
+         "CA" = "CLAAMO",
+         "MG" = "MICGRA",
+         "CG" = "COLLOGRA",
+         "NS" = "NAVSQUA")
  
 # save as cleaned csv file 
-write.csv(EffPollinators, "/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Pollinator_data_cleaned.csv", row.names = FALSE) 
+write.csv(EffPollinators, "Pollinator_data_cleaned.csv", row.names = FALSE) 
 
 ```
