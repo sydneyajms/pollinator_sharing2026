@@ -29,25 +29,8 @@ completeseeds <- bigseeds %>%
 neededData <- subset(completeseeds, 
                      select = c(Block, Plot, genSpec, sp, fc, OsPerb, CsPerb))
 
-# split into each treatment
-treatment_df <- split(neededData, neededData$genSpec, drop = FALSE)
-
-# make every treatment into adjaceny matrix list
-WHOLE_LIST <- vector("list", length = length(treatment_df))
-for(i in seq_along(treatment_df)){
- ThisMix <- treatment_df[[i]] %>%
-  ungroup() %>%
- # complete(Plant = all_plants, Pollinator = all_pollinators, fill = list(interactions = 0)) %>%
-  group_by(sp) %>%
-  summarize(interactions = n(), .groups = "drop") %>%
- # pivot_wider(names_from = Pollinator, values_from = interactions, values_fill = 0) %>%
- # column_to_rownames( var = "Plant")
- # ThisMix[is.na(ThisMix)] <- 0
-# ThisMix[ThisMix == 1] <- 0
-  WHOLE_LIST[[i]] <- ThisMix
-  names(WHOLE_LIST) <- names(Stand_df)
-}
-
+# save as cleaned csv file 
+write.csv(neededData, "/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Cleaned_seeds.csv", row.names = FALSE) 
 ```
  
  Read in Bee data and prepare to be joined to seed data 
@@ -72,4 +55,7 @@ Pollinators <- BeePlantsOnly %>%
 EffPollinators <- Pollinators %>%
   filter(!Genus %in% c("unidentifiable ", "beetle larve", "gymnosoma", "rhamphomyia ", "cylindromyia"))
  
+# save as cleaned csv file 
+write.csv(EffPollinators, "/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Pollinator_data_cleaned.csv", row.names = FALSE) 
+
 ```

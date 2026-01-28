@@ -1,0 +1,45 @@
+---
+title: "Analysis1"
+output: html_document
+date: "2026-01-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+# read in cleaned data
+pollinators <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Pollinator_data_cleaned.csv")
+seeds <- read.csv("/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Cleaned_seeds.csv")
+
+# join bee data to plant data 
+network <- pollinators %>%
+  inner_join(seeds, by = "Stand", relationship = "many-to-many") %>%
+  subset(select = -c(X, Year1, Site, Year, DoyStart)) %>%
+  rename("Pollinator" = GenusSpecies, "Plant" = PlantGenusSpecies.y) 
+
+# split into each treatment
+treatment_df <- split(network, network$genSpec, drop = FALSE)
+
+# make every treatment into adjaceny matrix list
+WHOLE_LIST <- vector("list", length = length(treatment_df))
+for(i in seq_along(treatment_df)){
+ ThisMix <- treatment_df[[i]] %>%
+  ungroup() %>%
+ # complete(Plant = all_plants, Pollinator = all_pollinators, fill = list(interactions = 0)) %>%
+  group_by(sp) %>%
+  summarize(interactions = n(), .groups = "drop") %>%
+ # pivot_wider(names_from = Pollinator, values_from = interactions, values_fill = 0) %>%
+ # column_to_rownames( var = "Plant")
+ # ThisMix[is.na(ThisMix)] <- 0
+# ThisMix[ThisMix == 1] <- 0
+  WHOLE_LIST[[i]] <- ThisMix
+  names(WHOLE_LIST) <- names(Stand_df)
+}
+
+```
+
+
