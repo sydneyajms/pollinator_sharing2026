@@ -51,9 +51,21 @@ BeePlantsOnly <- BeePlantsOnly %>%
 Pollinators <- BeePlantsOnly %>%
   inner_join(BeeNos)
 
-# remove all non-pollinators (keep syrphid genera only) 
+# remove all non-pollinators (keep syrphid genera only) and rename plants to codes
 EffPollinators <- Pollinators %>%
   filter(!Genus %in% c("unidentifiable ", "beetle larve", "gymnosoma", "rhamphomyia ", "cylindromyia"))
+  rename("CLAPAR" = ,
+         "MYODIS" = ,
+         "COLLIGRA" = ,
+         "CALMEN" = ,
+         "CLAPUR" = CP,
+         "CLAAMO" = CA
+         "GLAAMO" = ,
+         "MAOSAT" = ,
+         "MADELE" = ME,
+         "NAVINT" = ,
+         "NAVSQUA" = ,
+         )
  
 # save as cleaned csv file 
 write.csv(EffPollinators, "/Users/sydneyjames/OneDrive_UniversityofOregon/Thesis_Data /pollinator_sharing2026/Pollinator_data_cleaned.csv", row.names = FALSE) 
