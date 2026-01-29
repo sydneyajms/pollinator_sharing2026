@@ -307,7 +307,6 @@ C,6,specOnly,CP,10,1,,95,,,,,,95,0,95
 C,6,specOnly,CP,11,,,,,,,,,0,0,0
 C,6,specOnly,CP,12,1,1,63,36,,,,,99,36,63
 C,6,specOnly,MG,1,,,,,,,,,0,0,0
-Block,Plot,genSpec,sp,fc,Cblooms,Oblooms,Cseeds,Oseeds,GOseeds,GCseeds,BOseeds,BCseeds,total seeds ,total open,total closed
 A,1,genOnly,CA,1,1,1,125,57,,,,,182,57,125
 A,1,genOnly,CA,2,1,1,106,94,,,,,200,94,106
 A,1,genOnly,CA,3,2,2,65,164,,,,,229,164,65
@@ -616,7 +615,6 @@ C,6,specOnly,CP,10,1,,95,,,,,,95,0,95
 C,6,specOnly,CP,11,,,,,,,,,0,0,0
 C,6,specOnly,CP,12,1,1,63,36,,,,,99,36,63
 C,6,specOnly,MG,1,,,,,,,,,0,0,0
-Block,Plot,genSpec,sp,fc,Cblooms,Oblooms,Cseeds,Oseeds,GOseeds,GCseeds,BOseeds,BCseeds,total seeds ,total open,total closed
 A,1,genOnly,CA,1,1,1,125,57,,,,,182,57,125
 A,1,genOnly,CA,2,1,1,106,94,,,,,200,94,106
 A,1,genOnly,CA,3,2,2,65,164,,,,,229,164,65
