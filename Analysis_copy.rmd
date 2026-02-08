@@ -12,6 +12,7 @@ library(bipartite)
 library(ggplot2)
 library(cluster)
 library(vegan)
+library(purrr)
 ```
 
 ```{r}
@@ -70,6 +71,16 @@ generaldf_long$group[generaldf_long$group == "mean.number.of.shared.partners.LL"
 
 # join group level characterisics
 group_leveldf <- inner_join(nichedf_long, generaldf_long, by = c("group", "treatment"))
+
+whole_niche_overlap <- as.data.frame(networklevel(pp_all, level ="both", index = "niche overlap"))
+whole_niche_overlap$group[rownames(whole_niche_overlap)== "niche.overlap.HL"] <- "pollinators"
+whole_niche_overlap$group[rownames(whole_niche_overlap)== "niche.overlap.LL"] <- "plants"
+names(whole_niche_overlap)[1] <- "overlapNet"
+
+diffNichedf <- group_leveldf %>%
+  inner_join(whole_niche_overlap, by = "group", relationship = "many-to-many") %>%
+  mutate(diff = overlapNet - overlap)
+
 ```
 
 Begin whole network Analysis
@@ -99,19 +110,61 @@ lapply(clist, plotweb)
 Seed analysis and joining together to analyse
 
 ```{r}
-# find average Closed - Open per plant per group 
+# find average Open - Closed per plant per group 
+
+  zeros <- seeds[,c('OsPerb','CsPerb')]==0 
+  seeds[,c('OsPerb','CsPerb')][zeros] <- NA 
+  
 seedsGrouped <- seeds %>%
-  mutate(poll_impact = CsPerb -OsPerb) %>%
+  mutate(diff_poll_impact = OsPerb -CsPerb) %>%
+  mutate(ratio_poll_impact = OsPerb/CsPerb) %>%
   group_by(genSpec, sp) %>%
-  summarise(seedsPerPlant = mean(poll_impact))
- # mutate(plantStand = paste(genSpec, sp, sep = "_")) # collect treatment and plant toegther 
+  mutate(diff_seedsPerPlant = mean(diff_poll_impact, na.rm = TRUE)) %>%
+  mutate(ratio_seedsPerPlant = mean(ratio_poll_impact, na.rm = TRUE))
 
-# split into species
-focalSeeds <- seedsGrouped %>%
-  pivot_wider(names_from = genSpec, values_from = seedsPerPlant)
+smallSeeds <- seedsGrouped %>% 
+  distinct(genSpec, sp, ratio_seedsPerPlant)
 
-# want to make non negative ?
-logseeds <- seedsGrouped %>%
-  mutate(logseedsPerPlant = log10(seedsPerPlant))
+# split into community
+focalSeeds <- smallSeeds %>% 
+  rename(treatment = "genSpec") %>%
+  pivot_wider(id_cols = treatment, names_from = sp, values_from = ratio_seedsPerPlant) %>%
+  inner_join(diffNichedf, by = "treatment", relationship = "many-to-many") %>%
+  subset(select = -c(num_shared_partners, overlapNet))
+
+splitdf <- split(focalSeeds, focalSeeds$treatment)
+
+# plot overlap against seed ratios 
+plots <- vector("list", length(splitdf))
+for(i in seq_along(splitdf)){
+  this_treat <- splitdf[[i]]
+  plots[[i]] <-ggplot(this_treat, aes(x = overlap, y = CLAAMO, color = group)) + geom_point(size = 3) + theme_minimal() +
+    labs(title = names(splitdf)[i], x = "Overlap difference", y = "Ratio of Seeds As a Result of Pollination")}
+
+plots[1]
+
+# plot total visitation against overlap per treatment 
+ for(i in seq_along(clist)){
+   this.mat <- as.matrix(clist[[i]])
+   visitation[i] <- sum(this.mat)
+ }
+
+visitations <- data.frame( 
+  treatment = names(clist), 
+  total_visits = visitation )
+
+# join overlap to visitation 
+NicheHypOne <- diffNichedf %>%
+  filter(group == "pollinators") %>%
+  subset(select = c(treatment, diff))
+
+HypothOne <- visitations %>%
+  inner_join(NicheHypOne)
+
+
+
+
+
 ```
+
 
