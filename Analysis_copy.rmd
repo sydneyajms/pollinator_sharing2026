@@ -48,29 +48,30 @@ analyse data
 # find network and group level characteristics 
 H_values <- lapply(clist, networklevel, index = "H2")
 niche_overlap <- lapply(clist, grouplevel, level ="both", index = "niche overlap")
-generality <- lapply(clist, grouplevel, level = "both", index = "mean number of shared partners")
+part_diver <- lapply(clist, grouplevel, level = "both", index = "partner diversity")
+
 
 # convert list of metrics to data frame (can use for all metrics calculated)
 Hdf <- as.data.frame(H_values)
 nichedf <- as.data.frame(niche_overlap)
-generaldf <- as.data.frame(generality)
+part_diverdf <- as.data.frame(part_diver)
 
 # rearrange data frames
 nichedf_long <- nichedf %>% 
   tibble::rownames_to_column("group") %>% 
   pivot_longer(cols = -group, names_to = "treatment", values_to = "overlap")
-generaldf_long <- generaldf %>% 
+part_diverdf_long <- part_diverdf %>% 
   tibble::rownames_to_column("group") %>% 
-  pivot_longer(cols = -group, names_to = "treatment", values_to = "num_shared_partners")
+  pivot_longer(cols = -group, names_to = "treatment", values_to = "partner_diversity")
 
 # rename to specifiy which overlap is which 
 nichedf_long$group[nichedf_long$group == "niche.overlap.HL"] <- "pollinators" 
 nichedf_long$group[nichedf_long$group == "niche.overlap.LL"] <- "plants" 
-generaldf_long$group[generaldf_long$group == "mean.number.of.shared.partners.HL"] <- "pollinators" 
-generaldf_long$group[generaldf_long$group == "mean.number.of.shared.partners.LL"] <- "plants" 
+part_diverdf_long$group[part_diverdf_long$group == "partner.diversity.HL"] <- "pollinators" 
+part_diverdf_long$group[part_diverdf_long$group == "partner.diversity.LL"] <- "plants" 
 
 # join group level characterisics
-group_leveldf <- inner_join(nichedf_long, generaldf_long, by = c("group", "treatment"))
+group_leveldf <- inner_join(nichedf_long, part_diverdf_long, by = c("group", "treatment"))
 
 whole_niche_overlap <- as.data.frame(networklevel(pp_all, level ="both", index = "niche overlap"))
 whole_niche_overlap$group[rownames(whole_niche_overlap)== "niche.overlap.HL"] <- "pollinators"
@@ -130,7 +131,7 @@ focalSeeds <- smallSeeds %>%
   rename(treatment = "genSpec") %>%
   pivot_wider(id_cols = treatment, names_from = sp, values_from = ratio_seedsPerPlant) %>%
   inner_join(diffNichedf, by = "treatment", relationship = "many-to-many") %>%
-  subset(select = -c(num_shared_partners, overlapNet))
+  subset(select = -c(overlap, overlapNet))
 
 splitdf <- split(focalSeeds, focalSeeds$treatment)
 
@@ -143,28 +144,37 @@ for(i in seq_along(splitdf)){
 
 plots[1]
 
-# plot total visitation against overlap per treatment 
- for(i in seq_along(clist)){
+```
+Hypothesis 1 = visitation against overlap and seed output 
+
+```{r}
+# calculate total pollinator visitation per treatment 
+visitation <- vector(mode ="logical", length = 5) 
+for(i in seq_along(clist)){
    this.mat <- as.matrix(clist[[i]])
    visitation[i] <- sum(this.mat)
  }
 
-visitations <- data.frame( 
+visitation <- data.frame( 
   treatment = names(clist), 
   total_visits = visitation )
 
 # join overlap to visitation 
 NicheHypOne <- diffNichedf %>%
   filter(group == "pollinators") %>%
-  subset(select = c(treatment, diff))
+  subset(select = c(treatment, diff, partner_diversity))
 
-HypothOne <- visitations %>%
+HypothOne <- visitation %>%
   inner_join(NicheHypOne)
 
 
+ggplot(HypothOne) +
+  geom_point(aes(x = total_visits, y = diff, color = treatment))
 
-
+ggplot(HypothOne) +
+    geom_point(aes(x = total_visits, y = partner_diversity, color = treatment))
 
 ```
+
 
 
