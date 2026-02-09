@@ -202,10 +202,14 @@ ggplot(HypothTwo, aes(x = total_visits, y = diff, color = partner_diversity)) +
   scale_color_continuous(name = "Plant Partner Diversity")
 ```
 
-plot partner diversity against niche overlap - i excpect negative corelation 
+plot larger concepts not associated with treatments 
 
 ```{r}
-ggplot(diffNichedf) + geom_line(aes(x = partner_diversity, y = overlap, color = group))
+richnessTrans <- richness %>%
+  mutate(logrichness = log(richness, base = exp(1)))
+
+ggplot(diffNichedf) + 
+  geom_line(aes(x = overlap, y = partner_diversity, color = group))
 
 ```
 
