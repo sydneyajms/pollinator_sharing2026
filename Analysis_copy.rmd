@@ -10,9 +10,7 @@ library(tidyr)
 library(dplyr)
 library(bipartite)
 library(ggplot2)
-library(cluster)
-library(vegan)
-library(purrr)
+library(ggeffects)
 ```
 
 ```{r}
@@ -181,5 +179,12 @@ HypothTwo <- visitation %>%
 
 ggplot(HypothTwo) +
   geom_point(aes(x = total_visits, y = diff, color = partner_diversity)) + facet_wrap(~treatment) + labs(title = "Plant Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + scale_color_continuous(name = "Plant Partner Diversity")
+```
+
+plot partner diversity against niche overlap - i excpect negative corelation 
+
+```{r}
+ggplot(diffNichedf) + geom_line(aes(x = partner_diversity, y = overlap, color = group))
+
 ```
 
