@@ -82,6 +82,16 @@ diffNichedf <- group_leveldf %>%
   inner_join(whole_niche_overlap, by = "group", relationship = "many-to-many") %>%
   mutate(diff = overlapNet - overlap)
 
+# calculate total pollinator visitation per treatment  
+visitation <- vector(mode ="logical", length = 5) 
+for(i in seq_along(clist)){
+   this.mat <- as.matrix(clist[[i]])
+   visitation[i] <- sum(this.mat)
+ }
+visitation <- data.frame( 
+  treatment = names(clist), 
+  total_visits = visitation )
+
 ```
 
 Begin whole network Analysis
@@ -96,26 +106,16 @@ lapply(clist, visweb, square = "defined", box.col = "black", def.col = cols, lab
 
 # make overlap models
 lapply(clist, plotweb)
-
-# cols <- hcl.colors(51, "Peach", rev=TRUE)
-# intermax <- max(unlist(clist)) # flattens list of matrices and finds highest interaction number
-# par(mfrow=c(2,3), mar=c(1,1,1,1), bty='n')
-# for (i in trts){
-#   Opolls <- order(colSums(clist[[i]]), decreasing=TRUE)
-#   Oplants <- order(rowSums(clist[[i]]), decreasing=FALSE)
-#   tmp <- clist[[i]][Oplants, Opolls]
-#   image(t(tmp), zlim=c(0, intermax), col=cols, asp=1) 
-# }
 ```
 
-Seed analysis and joining together to analyse
+Seed analysis and joining 
 
 ```{r}
 # find average Open - Closed per plant per group 
+zeros <- seeds[,c('OsPerb','CsPerb')]==0 
+seeds[,c('OsPerb','CsPerb')][zeros] <- NA 
 
-  zeros <- seeds[,c('OsPerb','CsPerb')]==0 
-  seeds[,c('OsPerb','CsPerb')][zeros] <- NA 
-  
+# find means, differences and ratios of pollinator impact 
 seedsGrouped <- seeds %>%
   mutate(diff_poll_impact = OsPerb -CsPerb) %>%
   mutate(ratio_poll_impact = OsPerb/CsPerb) %>%
@@ -123,10 +123,11 @@ seedsGrouped <- seeds %>%
   mutate(diff_seedsPerPlant = mean(diff_poll_impact, na.rm = TRUE)) %>%
   mutate(ratio_seedsPerPlant = mean(ratio_poll_impact, na.rm = TRUE))
 
+#remove unneccesary collumns 
 smallSeeds <- seedsGrouped %>% 
   distinct(genSpec, sp, ratio_seedsPerPlant)
 
-# split into community
+# split into communities
 focalSeeds <- smallSeeds %>% 
   rename(treatment = "genSpec") %>%
   pivot_wider(id_cols = treatment, names_from = sp, values_from = ratio_seedsPerPlant) %>%
@@ -134,47 +135,51 @@ focalSeeds <- smallSeeds %>%
   subset(select = -c(overlap, overlapNet))
 
 splitdf <- split(focalSeeds, focalSeeds$treatment)
+```
 
+seed ploting drafts
+
+```{r}
 # plot overlap against seed ratios 
 plots <- vector("list", length(splitdf))
 for(i in seq_along(splitdf)){
   this_treat <- splitdf[[i]]
-  plots[[i]] <-ggplot(this_treat, aes(x = overlap, y = CLAAMO, color = group)) + geom_point(size = 3) + theme_minimal() +
+  plots[[i]] <-ggplot(this_treat, aes(x = overlap, y = value, color = group)) + geom_point(size = 3) + theme_minimal() +
     labs(title = names(splitdf)[i], x = "Overlap difference", y = "Ratio of Seeds As a Result of Pollination")}
 
 plots[1]
-
 ```
-Hypothesis 1 = visitation against overlap and seed output 
+
+Hypothesis 1 = visitation against pollinatopr overlap and seed output 
 
 ```{r}
-# calculate total pollinator visitation per treatment 
-visitation <- vector(mode ="logical", length = 5) 
-for(i in seq_along(clist)){
-   this.mat <- as.matrix(clist[[i]])
-   visitation[i] <- sum(this.mat)
- }
-
-visitation <- data.frame( 
-  treatment = names(clist), 
-  total_visits = visitation )
-
-# join overlap to visitation 
+# subset overlap to pollinatoprs 
 NicheHypOne <- diffNichedf %>%
   filter(group == "pollinators") %>%
   subset(select = c(treatment, diff, partner_diversity))
 
+# join overlap to visitation 
 HypothOne <- visitation %>%
   inner_join(NicheHypOne)
 
-
 ggplot(HypothOne) +
-  geom_point(aes(x = total_visits, y = diff, color = treatment))
-
-ggplot(HypothOne) +
-    geom_point(aes(x = total_visits, y = partner_diversity, color = treatment))
+  geom_point(aes(x = total_visits, y = diff, color = partner_diversity)) + facet_wrap(~treatment) + labs(title = "Pollinator Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + scale_color_continuous(name = "Poillinator Partner Diversity")
 
 ```
 
+Hypothesis 2 - floral overlap, visitation and seed output 
 
+```{r}
+# subset overlap to plants 
+NicheHypTwo <- diffNichedf %>%
+  filter(group == "plants") %>%
+  subset(select = c(treatment, diff, partner_diversity))
+
+# join overlap to visitation 
+HypothTwo <- visitation %>%
+  inner_join(NicheHypTwo)
+
+ggplot(HypothTwo) +
+  geom_point(aes(x = total_visits, y = diff, color = partner_diversity)) + facet_wrap(~treatment) + labs(title = "Plant Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + scale_color_continuous(name = "Plant Partner Diversity")
+```
 
