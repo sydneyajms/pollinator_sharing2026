@@ -11,6 +11,7 @@ library(dplyr)
 library(bipartite)
 library(ggplot2)
 library(ggeffects)
+library(ggrepel)
 ```
 
 ```{r}
@@ -90,6 +91,16 @@ visitation <- data.frame(
   treatment = names(clist), 
   total_visits = visitation )
 
+# calculate species richness
+richness <- vector(mode ="numeric", length = 5) 
+for (i in seq_along(clist)){
+  this.logMat <- as.logical(clist[[i]])
+  richness[i] <- sum(this.logMat)
+}
+richness <- data.frame( 
+  treatment = names(clist), 
+  richness = richness )
+
 ```
 
 Begin whole network Analysis
@@ -158,10 +169,15 @@ NicheHypOne <- diffNichedf %>%
 
 # join overlap to visitation 
 HypothOne <- visitation %>%
-  inner_join(NicheHypOne)
+  inner_join(NicheHypOne) %>%
+  inner_join(richness)
 
-ggplot(HypothOne) +
-  geom_point(aes(x = total_visits, y = diff, color = partner_diversity)) + facet_wrap(~treatment) + labs(title = "Pollinator Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + scale_color_continuous(name = "Poillinator Partner Diversity")
+ggplot(HypothOne, aes(x = total_visits, y = diff, color = partner_diversity)) +
+  geom_point() + 
+  geom_text_repel(aes(label = richness)) + 
+  facet_wrap(~treatment) + 
+  labs(title = "Pollinator Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + 
+  scale_color_continuous(name = "Poillinator Partner Diversity")
 
 ```
 
@@ -175,10 +191,15 @@ NicheHypTwo <- diffNichedf %>%
 
 # join overlap to visitation 
 HypothTwo <- visitation %>%
-  inner_join(NicheHypTwo)
+  inner_join(NicheHypTwo) %>%
+  inner_join(richness)
 
-ggplot(HypothTwo) +
-  geom_point(aes(x = total_visits, y = diff, color = partner_diversity)) + facet_wrap(~treatment) + labs(title = "Plant Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + scale_color_continuous(name = "Plant Partner Diversity")
+ggplot(HypothTwo, aes(x = total_visits, y = diff, color = partner_diversity)) +
+  geom_point() + 
+  geom_text_repel(aes(label = richness)) + 
+  facet_wrap(~treatment) + 
+  labs(title = "Plant Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + 
+  scale_color_continuous(name = "Plant Partner Diversity")
 ```
 
 plot partner diversity against niche overlap - i excpect negative corelation 
