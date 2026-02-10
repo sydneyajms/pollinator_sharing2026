@@ -19,10 +19,12 @@ library(ggrepel)
 pollinators <- read.csv("Pollinator_data_cleaned.csv")
 seeds <- read.csv("Cleaned_seeds.csv")
 
-# get unique treatments from seed data and make into empty list
+# get unique treatments from seed data and make into empty list (one for each treatment and one for each block)
 trts <- unique(seeds$genSpec)
 clist <- vector(mode='list', length=length(trts)) #list of communities (treatments)
 names(clist) <- trts  #naming the parts of the list the name of the treatment group 
+plist <- vector(mode='list', length=15)
+names(plist) <- unique(paste(trts, seeds$Block, sep = "_"))  #naming the parts of the list the name of the treatment group 
 
 # create for loop to make each item in list contain block and plots from that treatment
 for (tt in trts){
@@ -34,76 +36,139 @@ for (tt in trts){
   polls <- pollinators[pollinators$Block %in% block & pollinators$Plot %in% plot,]
   ppmat <- as.matrix(table(polls$sp, polls$Genus))
   clist[[tt]] <- ppmat
-}
+  
+for (b in block){
+  select <- paste(tt, b, sep = "_")
+  blockpolls <- polls[polls$Block ==b,]
+  ppmat <- as.matrix(table(polls$sp, polls$Genus))
+  plist[[select]] <- ppmat
+}}
 
 #whole experiment network:
 pp_all <- as.matrix(table(pollinators$sp, pollinators$Genus))
 ```
 
-analyse data 
+Network analysis by treatment 
 
 ```{r}
-
-# find network and group level characteristics 
+# find network and group level characteristics (by treatment)
 H_values <- lapply(clist, networklevel, index = "H2")
 niche_overlap <- lapply(clist, grouplevel, level ="both", index = "niche overlap")
 part_diver <- lapply(clist, grouplevel, level = "both", index = "partner diversity")
 
+# convert list of metrics to data frame (by treatment)
+H_values <- as.data.frame(H_values)
+niche_overlap <- as.data.frame(niche_overlap)
+part_diver <- as.data.frame(part_diver)
 
-# convert list of metrics to data frame (can use for all metrics calculated)
-Hdf <- as.data.frame(H_values)
-nichedf <- as.data.frame(niche_overlap)
-part_diverdf <- as.data.frame(part_diver)
+# create function to rename and which overlap is which and rearrange df  
+rename.levels <- function(df, metric){
+  new_df <- df %>% 
+  tibble::rownames_to_column("group")
+  new_df$group <- ifelse(grepl("HL", new_df$group), "pollinators", "plants")
+  new_df <- pivot_longer(new_df, cols = -group, names_to = "treatment", values_to = metric)
+  return(new_df) 
+}
 
-# rearrange data frames
-nichedf_long <- nichedf %>% 
-  tibble::rownames_to_column("group") %>% 
-  pivot_longer(cols = -group, names_to = "treatment", values_to = "overlap")
-part_diverdf_long <- part_diverdf %>% 
-  tibble::rownames_to_column("group") %>% 
-  pivot_longer(cols = -group, names_to = "treatment", values_to = "partner_diversity")
+nichedf <- rename.levels(niche_overlap, "overlap")
+partdf <- rename.levels(part_diver, "partner_diversity")
+Hdf <- rename.levels(H_values, "H2")
 
-# rename to specifiy which overlap is which 
-nichedf_long$group[nichedf_long$group == "niche.overlap.HL"] <- "pollinators" 
-nichedf_long$group[nichedf_long$group == "niche.overlap.LL"] <- "plants" 
-part_diverdf_long$group[part_diverdf_long$group == "partner.diversity.HL"] <- "pollinators" 
-part_diverdf_long$group[part_diverdf_long$group == "partner.diversity.LL"] <- "plants" 
-
-# join group level characterisics
-group_leveldf <- inner_join(nichedf_long, part_diverdf_long, by = c("group", "treatment"))
-
+# join group level characterisics (by treatment)
+group_leveldf <- inner_join(nichedf, partdf, by = c("group", "treatment"))
 whole_niche_overlap <- as.data.frame(networklevel(pp_all, level ="both", index = "niche overlap"))
-whole_niche_overlap$group[rownames(whole_niche_overlap)== "niche.overlap.HL"] <- "pollinators"
-whole_niche_overlap$group[rownames(whole_niche_overlap)== "niche.overlap.LL"] <- "plants"
 names(whole_niche_overlap)[1] <- "overlapNet"
+rownames(whole_niche_overlap) <- c("pollinators", "plants")
+whole_niche_overlap <- whole_niche_overlap %>%
+  tibble::rownames_to_column("group")
 
 diffNichedf <- group_leveldf %>%
   inner_join(whole_niche_overlap, by = "group", relationship = "many-to-many") %>%
   mutate(diff = overlapNet - overlap)
 
 # calculate total pollinator visitation per treatment  
-visitation <- vector(mode ="logical", length = 5) 
+TTvisitation <- vector(mode ="logical", length = 5) 
 for(i in seq_along(clist)){
    this.mat <- as.matrix(clist[[i]])
-   visitation[i] <- sum(this.mat)
+   TTvisitation[i] <- sum(this.mat)
  }
-visitation <- data.frame( 
+TTvisitation <- data.frame( 
   treatment = names(clist), 
-  total_visits = visitation )
+  total_visits = TTvisitation )
 
 # calculate species richness
-richness <- vector(mode ="numeric", length = 5) 
+TTrichness <- vector(mode ="numeric", length = 5) 
 for (i in seq_along(clist)){
   this.logMat <- as.logical(clist[[i]])
-  richness[i] <- sum(this.logMat)
+  TTrichness[i] <- sum(this.logMat)
 }
-richness <- data.frame( 
+TTrichness <- data.frame( 
   treatment = names(clist), 
-  richness = richness )
+  richness = TTrichness )
 
 ```
 
-Begin whole network Analysis
+Network analysis by block (still edit)
+
+```{r}
+# find network and group level characteristics (by treatment)
+blockH_values <- lapply(plist, networklevel, index = "H2")
+blockniche_overlap <- lapply(plist, grouplevel, level ="both", index = "niche overlap")
+blockpart_diver <- lapply(plist, grouplevel, level = "both", index = "partner diversity")
+
+# convert list of metrics to data frame (by treatment)
+blockH_values <- as.data.frame(blockH_values)
+blockniche_overlap <- as.data.frame(blockniche_overlap)
+blockpart_diver <- as.data.frame(blockpart_diver)
+
+# create function to rename and which overlap is which and rearrange df  
+rename.levels <- function(df, metric){
+  new_df <- df %>% 
+  tibble::rownames_to_column("group")
+  new_df$group <- ifelse(grepl("HL", new_df$group), "pollinators", "plants")
+  new_df <- pivot_longer(new_df, cols = -group, names_to = "treatment", values_to = metric)
+  return(new_df) 
+}
+
+blocknichedf <- rename.levels(blockniche_overlap, "overlap")
+blockpartdf <- rename.levels(blockpart_diver, "partner_diversity")
+blockHdf <- rename.levels(blockH_values, "H2")
+
+# join group level characterisics (by treatment)
+blockgroup_leveldf <- inner_join(blocknichedf, blockpartdf, by = c("group", "treatment"))
+whole_block <- as.data.frame(networklevel(pp_all, level ="both", index = "niche overlap"))
+names(whole_block)[1] <- "overlapNet"
+rownames(whole_block) <- c("pollinators", "plants")
+whole_block <- whole_block %>%
+  tibble::rownames_to_column("group")
+
+blockdiffNichedf <- blockgroup_leveldf %>%
+  inner_join(whole_block, by = "group", relationship = "many-to-many") %>%
+  mutate(diff = overlapNet - overlap)
+
+# calculate total pollinator visitation per treatment  
+Bvisitation <- vector(mode ="logical", length = length(plist)) 
+for(i in seq_along(plist)){
+   this.mat <- as.matrix(plist[[i]])
+   Bvisitation[i] <- sum(this.mat)
+ }
+Bvisitation <- data.frame( 
+  treatment = names(plist), 
+  total_visits = Bvisitation )
+
+# calculate species richness
+Brichness <- vector(mode ="numeric", length =length(plist)) 
+for (i in seq_along(plist)){
+  this.logMat <- as.logical(plist[[i]])
+  Brichness[i] <- sum(this.logMat)
+}
+Brichness <- data.frame( 
+  treatment = names(plist), 
+  richness = Brichness )
+
+```
+
+Visualise Networks 
 
 ```{r}
 
@@ -162,6 +227,7 @@ plots[1]
 Hypothesis 1 = visitation against pollinatopr overlap and seed output 
 
 ```{r}
+# BY TREATMENT
 # subset overlap to pollinatoprs 
 NicheHypOne <- diffNichedf %>%
   filter(group == "pollinators") %>%
@@ -178,6 +244,28 @@ ggplot(HypothOne, aes(x = total_visits, y = diff, color = partner_diversity)) +
   facet_wrap(~treatment) + 
   labs(title = "Pollinator Niche Overlap, Pollinator Visitation and Partner Diversity", x = "Total Pollinator Visits", y = "Niche Overlap") + 
   scale_color_continuous(name = "Poillinator Partner Diversity")
+
+# BY BLOCK
+# subset overlap to pollinatoprs 
+blockNicheHypOne <- blockdiffNichedf %>%
+  filter(group == "pollinators") %>%
+  subset(select = c(treatment, diff, partner_diversity))
+
+# join overlap to visitation 
+blockHypothOne <- Bvisitation %>%
+  inner_join(blockNicheHypOne) %>%
+  inner_join(Brichness)
+
+# create new column that just has treatment (no blocks)
+blockHypothOne <- blockHypothOne %>% 
+  separate(treatment, into = c("treatment_name", "block"), sep = "_", remove = FALSE)
+
+
+ggplot(blockHypothOne, aes(x = total_visits, y = diff, fill = treatment_name, color = partner_diversity)) +
+  geom_bar(stat = "identity") + 
+  #geom_text_repel(aes(label = treatment_name)) + 
+  labs(title = "Pollinator Niche Overlap and Visitation", x = "Total Pollinator Visits", y = "Niche Overlap") + 
+  scale_color_continuous(name = "partner_diversity")
 
 ```
 
