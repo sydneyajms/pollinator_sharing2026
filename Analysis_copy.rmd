@@ -40,8 +40,8 @@ for (tt in trts){
 for (b in block){
   select <- paste(tt, b, sep = "_")
   blockpolls <- polls[polls$Block ==b,]
-  ppmat <- as.matrix(table(polls$sp, polls$Genus))
-  plist[[select]] <- ppmat
+  ppmatB <- as.matrix(table(polls$sp, polls$Genus))
+  plist[[select]] <- ppmatB
 }}
 
 #whole experiment network:
@@ -108,7 +108,7 @@ TTrichness <- data.frame(
 
 ```
 
-Network analysis by block (still edit)
+Network analysis by block 
 
 ```{r}
 # find network and group level characteristics (by treatment)
@@ -146,7 +146,7 @@ blockdiffNichedf <- blockgroup_leveldf %>%
   inner_join(whole_block, by = "group", relationship = "many-to-many") %>%
   mutate(diff = overlapNet - overlap)
 
-# calculate total pollinator visitation per treatment  
+# calculate total pollinator visitation per block  
 Bvisitation <- vector(mode ="logical", length = length(plist)) 
 for(i in seq_along(plist)){
    this.mat <- as.matrix(plist[[i]])
@@ -234,9 +234,9 @@ NicheHypOne <- diffNichedf %>%
   subset(select = c(treatment, diff, partner_diversity))
 
 # join overlap to visitation 
-HypothOne <- visitation %>%
+HypothOne <- TTvisitation %>%
   inner_join(NicheHypOne) %>%
-  inner_join(richness)
+  inner_join(TTrichness)
 
 ggplot(HypothOne, aes(x = total_visits, y = diff, color = partner_diversity)) +
   geom_point() + 
