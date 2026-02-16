@@ -149,7 +149,11 @@ smallSeeds <- seedsGrouped %>%
 smallSeeds$treatment <- paste(smallSeeds$genSpec, substr(smallSeeds$BP,1,1), sep = "_")
 
 smallSeeds1 <- smallSeeds %>%
-  right_join(nichedf, by = "treatment")
+  right_join(nichedf, by = "treatment") %>%
+  group_by(genSpec, sp, group) %>%
+  summarise(AvOverlap = mean(overlap))
+
+sort(smallSeeds1$AvOverlap)
   
 # split into communities
 focalSeeds <- smallSeeds %>% 
@@ -159,7 +163,9 @@ focalSeeds <- smallSeeds %>%
 
 splitdf <- split(focalSeeds, focalSeeds$treatment)
 
-
+test <- focalSeeds %>%
+  group_by(genSpec) %>%
+  summarise(meanrich = mean(MICGRA))
 ```
 
 seed plotting 
@@ -169,13 +175,19 @@ seed plotting
 
 smallSeeds1 %>% filter(group=="pollinators") %>%
   droplevels()%>%
-  ggplot(aes(x = overlap, y = ratio_seedsPerPlant, fill = sp)) +
-  geom_boxplot()
+  ggplot(aes(x = AvOverlap, y = ratio_seedsPerPlant, color = genSpec)) +
+  geom_boxplot() +
+  facet_wrap(~sp)
 
 smallSeeds1 %>% filter(group=="plants") %>%
   droplevels()%>%
-  ggplot(aes(x = overlap, y = ratio_seedsPerPlant, fill = sp)) +
-  geom_boxplot()
+  ggplot(aes(x = AvOverlap, y = ratio_seedsPerPlant, color =genSpec)) +
+  geom_boxplot() +
+  facet_wrap(~sp)
+
+ggplot(smallSeeds1) +
+  geom_boxplot(aes(x = AvOverlap, y = ratio_seedsPerPlant, color = genSpec)) +
+  facet_wrap(~sp)
 
 # plot overlap against seed ratios for each treatment 
 
