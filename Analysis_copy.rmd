@@ -144,29 +144,76 @@ seedsGrouped <- seeds %>%
 
 #remove unneccesary collumns 
 smallSeeds <- seedsGrouped %>% 
-  distinct(genSpec, sp, BP, ratio_seedsPerPlant)
+  distinct(genSpec, sp, BP, ratio_seedsPerPlant) %>%
 
+smallSeeds$treatment <- paste(smallSeeds$genSpec, substr(smallSeeds$BP,1,1), sep = "_")
+
+smallSeeds1 <- smallSeeds %>%
+  right_join(nichedf, by = "treatment")
+  
 # split into communities
 focalSeeds <- smallSeeds %>% 
-  rename(treatment = "genSpec") %>%
-  pivot_wider(id_cols = c(treatment, BP), names_from = sp, values_from = ratio_seedsPerPlant) %>%
-  inner_join(blockdiffNichedf, by = "treatment", relationship = "many-to-many") %>%
+  pivot_wider(id_cols = c(treatment, BP, genSpec), names_from = sp, values_from = ratio_seedsPerPlant) %>%
+  inner_join(Whole_df, by = "treatment", relationship = "many-to-many") %>%
   subset(select = -c(overlapNet))
 
 splitdf <- split(focalSeeds, focalSeeds$treatment)
+
+
 ```
 
-seed ploting drafts
+seed plotting 
 
 ```{r}
-# plot overlap against seed ratios 
-plots <- vector("list", length(splitdf))
-for(i in seq_along(splitdf)){
-  this_treat <- splitdf[[i]]
-  plots[[i]] <-ggplot(this_treat, aes(x = overlap, y = value, color = group)) + geom_point(size = 3) + theme_minimal() +
-    labs(title = names(splitdf)[i], x = "Overlap difference", y = "Ratio of Seeds As a Result of Pollination")}
+# plot overlap against seed ratios for all Focal species
 
-plots[1]
+smallSeeds1 %>% filter(group=="pollinators") %>%
+  droplevels()%>%
+  ggplot(aes(x = overlap, y = ratio_seedsPerPlant, fill = sp)) +
+  geom_boxplot()
+
+smallSeeds1 %>% filter(group=="plants") %>%
+  droplevels()%>%
+  ggplot(aes(x = overlap, y = ratio_seedsPerPlant, fill = sp)) +
+  geom_boxplot()
+
+# plot overlap against seed ratios for each treatment 
+
+focalSeeds %>% filter(!is.na(CLAAMO)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = CLAAMO, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "CLAAMO Reproductive Output")
+
+focalSeeds %>% filter(!is.na(MADELE)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = MADELE, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "MADELE Reproductive Output")
+
+focalSeeds %>% filter(!is.na(CLAPUR)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = CLAPUR, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "CLAPUR Reproductive Output")
+
+ focalSeeds %>% filter(!is.na(MICGRA)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = MICGRA, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "MICGRA Reproductive Output")
+ 
+ ggplot(focalSeeds) +
+   geom_point(aes(x = overlap, y = ))
+ 
+ # plot seeds against overlap 
+ 
+ focalSeeds %>% filter(group == "pollinators") %>%
+   pivot_longer(names_from)
+  ggplot(aes(x = overlap, y = value, color = treatment)) + 
+  geom_line()
+
+   
 ```
 
 Pollinator overlap
@@ -186,7 +233,7 @@ ggplot(PollWhole_df, aes(x = treatment_name, y = richness, group = treatment_nam
 ggplot(PollWhole_df, aes(x = treatment_name, y = overlap, group = treatment_name, fill = treatment_name)) +
   geom_boxplot() 
 
-
+CORPOLL <- cor(PollWhole_df$overlap, PollWhole_df$total_visits)
 ```
 
 Floral overlap
@@ -205,6 +252,8 @@ ggplot(PlantWhole_df, aes(x = treatment_name, y = richness, group = treatment_na
 
 ggplot(PlantWhole_df, aes(x = treatment_name, y = overlap, group = treatment_name, fill = treatment_name)) +
   geom_boxplot() 
+
+CORPLANT <- cor(PlantWhole_df$overlap, PlantWhole_df$richness)
 
 ```
 
