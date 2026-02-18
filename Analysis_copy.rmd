@@ -60,10 +60,12 @@ H_values <- lapply(plist, networklevel, index = "H2")
 niche_overlap <- lapply(plist, grouplevel, level ="both", index = "niche overlap")
 part_diver <- lapply(plist, grouplevel, level = "both", index = "partner diversity")
 
+
 # convert list of metrics to data frame (by treatment)
 H_values <- as.data.frame(H_values)
 niche_overlap <- as.data.frame(niche_overlap)
 part_diver <- as.data.frame(part_diver)
+
 
 # create function to rename and which overlap is which and rearrange df  
 rename.levels <- function(df, metric){
@@ -164,7 +166,10 @@ spNames <- unique(seeds$sp)
    mutate(overlap = mean(c(pollinators,plants)))
  
 # linear regression 
-lm1 = lm(CORfocalSeeds$seedOutput~CORfocalSeeds$overlap)
+lm1 = lm(CORfocalSeeds$seedOutput~CORfocalSeeds$diff)
+lm2 = lm(CORfocalSeeds$overlap~CORfocalSeeds$genSpec)
+lm3 = lm(CORfocalSeeds$overlap~CORfocalSeeds$richness)
+
  
 ```
 
@@ -189,36 +194,26 @@ ggplot(CORfocalSeeds, aes(x = overlap, y = seedOutput, color = genSpec, shape = 
   geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
   labs(x="Overlap") 
 
-# plot seed output of each focal species across treatments 
-focalSeeds %>% filter(!is.na(CLAAMO)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = CLAAMO, fill = genSpec)) + 
+# plot overlap for treatments
+ggplot(CORfocalSeeds, aes(x = genSpec, y = overlap, fill = genSpec)) +
   geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "CLAAMO Reproductive Output")
+  stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
+  labs(x="Treatment", y = "Overlap") 
 
-focalSeeds %>% filter(!is.na(MADELE)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = MADELE, fill = genSpec)) + 
+#plot seed ratios for treatments
+ggplot(CORfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
   geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "MADELE Reproductive Output")
+  stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
+  labs(x="Treatment", y = "Seeds")
 
-focalSeeds %>% filter(!is.na(CLAPUR)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = CLAPUR, fill = genSpec)) + 
-  geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "CLAPUR Reproductive Output")
+# plot visits against overlap 
+ggplot(CORfocalSeeds, aes(x = total_visits, y = richness, color = genSpec)) +
+  geom_point() +
+  geom_abline(intercept = coef(lm3)[1], slope = coef(lm3)[2], color = "purple") +
+  labs(x="visits", y = "richness")
 
- focalSeeds %>% filter(!is.na(MICGRA)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = MICGRA, fill = genSpec)) + 
-  geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "MICGRA Reproductive Output")
 
-# plot only for gen and spec 
- CORfocalSeeds %>% filter (genSpec == "genOnly" | genSpec == "specOnly") %>%
- ggplot(aes(x = overlap, y = seedOutput, color = genSpec)) +
-  geom_boxplot() +
-  labs(x="Overlap") 
+
 ```
 
 Pollinator overlap
@@ -258,14 +253,38 @@ ggplot(PlantWhole_df, aes(x = treatment_name, y = overlap, group = treatment_nam
 
 ```
 
-linear regression
+Plot seed output per species per treatment 
 
 ```{r}
-lm1 = lm(CORfocalSeeds$plants~CORfocalSeeds$pollinators)
+# plot seed output of each focal species across treatments 
+focalSeeds %>% filter(!is.na(CLAAMO)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = CLAAMO, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "CLAAMO Reproductive Output")
 
-# 2. Add the line to the ggplot using the model's coefficients
-ggplot(data = mtcars, aes(x = wt, y = mpg)) +
-  geom_point() +
-  geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red")
+focalSeeds %>% filter(!is.na(MADELE)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = MADELE, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "MADELE Reproductive Output")
+
+focalSeeds %>% filter(!is.na(CLAPUR)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = CLAPUR, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "CLAPUR Reproductive Output")
+
+ focalSeeds %>% filter(!is.na(MICGRA)) %>%
+  droplevels() %>% 
+  ggplot(aes(x = genSpec, y = MICGRA, fill = genSpec)) + 
+  geom_boxplot() +
+  labs(y ="Seed output ratio", x = "Treatment", title = "MICGRA Reproductive Output")
+```
+
+
+
+```{r}
+
 ```
 
