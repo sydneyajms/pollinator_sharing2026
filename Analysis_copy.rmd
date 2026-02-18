@@ -120,7 +120,6 @@ Visualise Whole Networks
 # visualise network as heatmap
 library(RColorBrewer)
 cols <- hcl.colors(20, "Peach", rev = TRUE)
-#par(mfrow =c(2,3))
 lapply(clist, visweb, square = "defined", box.col = "black", def.col = cols, labsize = 0.5, text = "interaction", textcol = "black", NA.col = "white")
 
 # make overlap models
@@ -144,53 +143,53 @@ seedsGrouped <- seeds %>%
 
 #remove unneccesary collumns 
 smallSeeds <- seedsGrouped %>% 
-  distinct(genSpec, sp, BP, ratio_seedsPerPlant) %>%
+  distinct(genSpec, sp, BP, ratio_seedsPerPlant)
 
+# add treatment column 
 smallSeeds$treatment <- paste(smallSeeds$genSpec, substr(smallSeeds$BP,1,1), sep = "_")
-
-smallSeeds1 <- smallSeeds %>%
-  right_join(nichedf, by = "treatment") %>%
-  group_by(genSpec, sp, group) %>%
-  summarise(AvOverlap = mean(overlap))
-
-sort(smallSeeds1$AvOverlap)
   
-# split into communities
+# combine all data 
 focalSeeds <- smallSeeds %>% 
   pivot_wider(id_cols = c(treatment, BP, genSpec), names_from = sp, values_from = ratio_seedsPerPlant) %>%
   inner_join(Whole_df, by = "treatment", relationship = "many-to-many") %>%
   subset(select = -c(overlapNet))
 
-splitdf <- split(focalSeeds, focalSeeds$treatment)
-
-test <- focalSeeds %>%
-  group_by(genSpec) %>%
-  summarise(meanrich = mean(MICGRA))
+# pivot df wider for tidyness 
+spNames <- unique(seeds$sp)
+ CORfocalSeeds <- focalSeeds %>%
+   select(!c(partner_diversity, diff)) %>%
+   pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
+   pivot_wider(names_from = group, values_from = overlap) %>%
+   rowwise() %>%
+   mutate(overlap = mean(c(pollinators,plants)))
+ 
+# linear regression 
+lm1 = lm(CORfocalSeeds$seedOutput~CORfocalSeeds$overlap)
+ 
 ```
 
-seed plotting 
+seed plotting - make sure to change lm1 depending on relationship being plotted
 
 ```{r}
-# plot overlap against seed ratios for all Focal species
+# plot overlap against seed ratios, sep = species 
+ggplot(CORfocalSeeds, aes(x = overlap, y = seedOutput, color = genSpec)) +
+  geom_point() +
+  facet_wrap(~sp) +
+  labs(x="Overlap") 
 
-smallSeeds1 %>% filter(group=="pollinators") %>%
-  droplevels()%>%
-  ggplot(aes(x = AvOverlap, y = ratio_seedsPerPlant, color = genSpec)) +
-  geom_boxplot() +
-  facet_wrap(~sp)
+# plot overlap against seed ratios, sep = treatment 
+ggplot(CORfocalSeeds, aes(x = overlap, y = seedOutput, color = genSpec)) +
+  geom_point() +
+  facet_wrap(~genSpec) +
+  labs(x="Overlap")
 
-smallSeeds1 %>% filter(group=="plants") %>%
-  droplevels()%>%
-  ggplot(aes(x = AvOverlap, y = ratio_seedsPerPlant, color =genSpec)) +
-  geom_boxplot() +
-  facet_wrap(~sp)
+# plot overlap against seed raatios for all 
+ggplot(CORfocalSeeds, aes(x = overlap, y = seedOutput, color = genSpec, shape = sp)) +
+  geom_point() +
+  geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
+  labs(x="Overlap") 
 
-ggplot(smallSeeds1) +
-  geom_boxplot(aes(x = AvOverlap, y = ratio_seedsPerPlant, color = genSpec)) +
-  facet_wrap(~sp)
-
-# plot overlap against seed ratios for each treatment 
-
+# plot seed output of each focal species across treatments 
 focalSeeds %>% filter(!is.na(CLAAMO)) %>%
   droplevels() %>% 
   ggplot(aes(x = genSpec, y = CLAAMO, fill = genSpec)) + 
@@ -214,18 +213,12 @@ focalSeeds %>% filter(!is.na(CLAPUR)) %>%
   ggplot(aes(x = genSpec, y = MICGRA, fill = genSpec)) + 
   geom_boxplot() +
   labs(y ="Seed output ratio", x = "Treatment", title = "MICGRA Reproductive Output")
- 
- ggplot(focalSeeds) +
-   geom_point(aes(x = overlap, y = ))
- 
- # plot seeds against overlap 
- 
- focalSeeds %>% filter(group == "pollinators") %>%
-   pivot_longer(names_from)
-  ggplot(aes(x = overlap, y = value, color = treatment)) + 
-  geom_line()
 
-   
+# plot only for gen and spec 
+ CORfocalSeeds %>% filter (genSpec == "genOnly" | genSpec == "specOnly") %>%
+ ggplot(aes(x = overlap, y = seedOutput, color = genSpec)) +
+  geom_boxplot() +
+  labs(x="Overlap") 
 ```
 
 Pollinator overlap
@@ -244,8 +237,6 @@ ggplot(PollWhole_df, aes(x = treatment_name, y = richness, group = treatment_nam
 
 ggplot(PollWhole_df, aes(x = treatment_name, y = overlap, group = treatment_name, fill = treatment_name)) +
   geom_boxplot() 
-
-CORPOLL <- cor(PollWhole_df$overlap, PollWhole_df$total_visits)
 ```
 
 Floral overlap
@@ -265,13 +256,16 @@ ggplot(PlantWhole_df, aes(x = treatment_name, y = richness, group = treatment_na
 ggplot(PlantWhole_df, aes(x = treatment_name, y = overlap, group = treatment_name, fill = treatment_name)) +
   geom_boxplot() 
 
-CORPLANT <- cor(PlantWhole_df$overlap, PlantWhole_df$richness)
-
 ```
 
-plot larger concepts not associated with treatments 
+linear regression
 
 ```{r}
+lm1 = lm(CORfocalSeeds$plants~CORfocalSeeds$pollinators)
 
+# 2. Add the line to the ggplot using the model's coefficients
+ggplot(data = mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red")
 ```
 
