@@ -12,6 +12,9 @@ library(bipartite)
 library(ggplot2)
 library(ggeffects)
 library(ggrepel)
+library(tidyverse)
+library(vegan)
+library(reshape2)
 ```
 
 ```{r}
@@ -55,13 +58,13 @@ pp_all <- as.matrix(table(pollinators$sp, pollinators$Genus))
 Network analysis by block 
 
 ```{r}
-# find network and group level characteristics (by treatment)
+# find network and group level characteristics (by block/plot)
 H_values <- lapply(plist, networklevel, index = "H2")
 niche_overlap <- lapply(plist, grouplevel, level ="both", index = "niche overlap")
 part_diver <- lapply(plist, grouplevel, level = "both", index = "partner diversity")
 
 
-# convert list of metrics to data frame (by treatment)
+# convert list of metrics to data frame (by by block/plot)
 H_values <- as.data.frame(H_values)
 niche_overlap <- as.data.frame(niche_overlap)
 part_diver <- as.data.frame(part_diver)
@@ -127,6 +130,7 @@ lapply(clist, visweb, square = "defined", box.col = "black", def.col = cols, lab
 # make overlap models
 lapply(clist, plotweb)
 ```
+
 
 Seed analysis and joining 
 
@@ -282,9 +286,47 @@ focalSeeds %>% filter(!is.na(CLAPUR)) %>%
   labs(y ="Seed output ratio", x = "Treatment", title = "MICGRA Reproductive Output")
 ```
 
-
+dissimilarity?
 
 ```{r}
+## calculate total interactions for each unique pol-plant pair##
+# plant_association <- polls %>%
+#   mutate(across(where(is.character), str_trim)) %>%
+#   group_by(Genus, sp, BP) %>%
+#   summarise(count = n(), .groups = "drop")
+# 
+# association_dta <- plant_association %>% 
+#   group_by(Genus, sp) %>%
+#   summarize(count = round(mean(count)), .groups = "drop") %>% 
+#    pivot_wider(
+#     names_from = sp,
+#     values_from = count,
+#     values_fill = 0)
+
+# association_matrix <- association_dta  %>% 
+#   select(-Genus) %>% 
+#   as.matrix()
+# bee_names <- association_dta$Genus
+# rownames(association_matrix) <- bee_names
+# association_matrix[association_matrix > 0] <- 1
+
+# set.seed(1)
+# jaccard_diss <- vegdist(t(association_matrix), method = "jaccard")
+# jaccard_matrix <- as.matrix(jaccard_diss)
+# sort(colSums(jaccard_matrix), decreasing = TRUE)
+# jaccard_long <- reshape2::melt(as.matrix(jaccard_matrix))
+# 
+# jaccard_plot <- jaccard_long %>% 
+#   as.data.frame() %>% 
+#   ggplot(aes(x = Var1, y = Var2, fill = value)) +
+#   geom_tile() +
+#   scale_fill_viridis_c(option = "viridis") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+#   labs(x = NULL, y = NULL, fill = "Dissimilarity Index")
+# 
+# jaccard_plot
+
 
 ```
 

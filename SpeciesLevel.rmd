@@ -1,0 +1,74 @@
+---
+title: "Untitled"
+output: html_document
+date: "2026-02-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(dplyr)
+library(bipartite)
+library(ggplot2)
+library(ggeffects)
+library(ggrepel)
+```
+
+
+
+```{r cars}
+# find species level characteristics (by species for every block/plot)
+PSI_val <- lapply(plist, specieslevel, level = "both", index = "PSI")
+effectPart_val <- lapply(plist, specieslevel, index = "effective partners")
+
+# convert list of metrics to data frame (by treatment)
+PSIdf <- lapply(PSI_val, as.data.frame)
+effecPartdf <- as.data.frame(effectPart_val)
+
+# create function to rename and which overlap is which and rearrange df  
+rename.levels <- function(df, metric){
+  new_df <- df %>% 
+  tibble::rownames_to_column("group")
+  new_df$group <- ifelse(grepl("HL", new_df$group), "pollinators", "plants")
+  new_df <- pivot_longer(new_df, cols = -group, names_to = "treatment", values_to = metric)
+  return(new_df) 
+}
+
+nichedf <- rename.levels(niche_overlap, "overlap")
+partdf <- rename.levels(part_diver, "partner_diversity")
+Hdf <- rename.levels(H_values, "H2")
+
+# calculate total pollinator visitation per block  
+visitation <- vector(mode ="logical", length = length(plist)) 
+for(i in seq_along(plist)){
+   this.mat <- as.matrix(plist[[i]])
+   visitation[i] <- sum(this.mat)
+ }
+visitation <- data.frame( 
+  treatment = names(plist), 
+  total_visits = visitation )
+
+# calculate species richness
+richness <- vector(mode ="numeric", length =length(plist)) 
+for (i in seq_along(plist)){
+  this.logMat <- as.logical(plist[[i]])
+  richness[i] <- sum(this.logMat)
+}
+richness <- data.frame( 
+  treatment = names(plist), 
+  richness = richness )
+
+# Join all characteristics toegther into df
+Whole_df <- inner_join(nichedf, partdf, by = c("group", "treatment"))
+Total_nichedf <- as.data.frame(networklevel(pp_all, level ="both", index = "niche overlap"))
+names(Total_nichedf)[1] <- "overlapNet"
+rownames(Total_nichedf) <- c("pollinators", "plants")
+Total_nichedf <- Total_nichedf %>%
+  tibble::rownames_to_column("group")
+
+Whole_df <- Whole_df %>%
+  inner_join(Total_nichedf, by = "group", relationship = "many-to-many") %>%
+  inner_join(richness, by = "treatment", relationship = "many-to-many" ) %>%
+  inner_join(visitation, by = "treatment", relationship = "many-to-many" ) %>%
+  mutate(diff = overlapNet - overlap) 
+```
