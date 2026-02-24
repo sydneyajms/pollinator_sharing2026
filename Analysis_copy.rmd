@@ -79,15 +79,15 @@ Network analysis by block
 ```{r}
 # find network and group level characteristics (by block/plot)
 H_values <- lapply(plist, networklevel, index = "H2")
+nestedness <- lapply(plist, networklevel, index = "nestedness")
 niche_overlap <- lapply(plist, grouplevel, level ="both", index = "niche overlap")
-part_diver <- lapply(plist, grouplevel, level = "both", index = "partner diversity")
-
+Total_niche <- networklevel(pp_all, level ="both", index = "niche overlap")
 
 # convert list of metrics to data frame (by by block/plot)
 H_values <- as.data.frame(H_values)
+nestedness <- as.data.frame(nestedness)
 niche_overlap <- as.data.frame(niche_overlap)
-part_diver <- as.data.frame(part_diver)
-
+Total_niche <- as.data.frame(Total_niche)
 
 # create function to rename and which overlap is which and rearrange df  
 rename.levels <- function(df, metric){
@@ -98,9 +98,18 @@ rename.levels <- function(df, metric){
   return(new_df) 
 }
 
+# make characteristics into dfs 
 nichedf <- rename.levels(niche_overlap, "overlap")
-partdf <- rename.levels(part_diver, "partner_diversity")
 Hdf <- rename.levels(H_values, "H2")
+nestednessdf <- nestedness %>%
+  tibble::rownames_to_column("metric") %>%
+  pivot_longer(cols = -metric, names_to = "treatment", values_to = "nestedness") %>%
+  select(-metric)
+
+names(Total_niche)[1] <- "overlapNet"
+rownames(Total_niche) <- c("pollinators", "plants")
+Total_niche <- Total_niche %>%
+  tibble::rownames_to_column("group")
 
 # calculate total pollinator visitation per block  
 visitation <- vector(mode ="logical", length = length(plist)) 
@@ -122,19 +131,34 @@ richness <- data.frame(
   treatment = names(plist), 
   richness = richness )
 
-# Join all characteristics toegther into df
-Whole_df <- inner_join(nichedf, partdf, by = c("group", "treatment"))
-Total_nichedf <- as.data.frame(networklevel(pp_all, level ="both", index = "niche overlap"))
-names(Total_nichedf)[1] <- "overlapNet"
-rownames(Total_nichedf) <- c("pollinators", "plants")
-Total_nichedf <- Total_nichedf %>%
-  tibble::rownames_to_column("group")
+######### need to make BP for pollinator data as well 
 
-Whole_df <- Whole_df %>%
-  inner_join(Total_nichedf, by = "group", relationship = "many-to-many") %>%
-  inner_join(richness, by = "treatment", relationship = "many-to-many" ) %>%
+
+# Join all characteristics toegther into df
+Whole_df <- nichedf %>%
+  inner_join(richness, by = c("treatment", relationship = "many-to-many" ) %>%
   inner_join(visitation, by = "treatment", relationship = "many-to-many" ) %>%
-  mutate(diff = overlapNet - overlap) 
+  inner_join(nestedness, by = "treatment", relationship = "many-to-many") %>%
+  inner_join(Hdf, by = c("treatment", "group"), relationship = "many-to-many") %>%
+  inner_join(Total_niche, by = "group", relationship = "many-to-many") %>%
+  mutate(diffOverlap = overlapNet - overlap) %>%
+  select(-c(overlapNet))
+  
+
+# combine all data 
+focalSeeds <- smallSeeds %>% 
+  pivot_wider(id_cols = c(treatment, BP, genSpec), names_from = sp, values_from = ratio_seedsPerPlant) %>%
+  inner_join(Whole_df, by = "treatment", relationship = "many-to-many") %>%
+  subset(select = -c(overlapNet))
+
+# pivot df wider for tidyness 
+spNames <- unique(seeds$sp)
+ CORfocalSeeds <- focalSeeds %>%
+   select(!c(partner_diversity, diff)) %>%
+   pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
+   pivot_wider(names_from = group, values_from = overlap) %>%
+   rowwise() %>%
+   mutate(overlap = mean(c(pollinators,plants)))
 
 ```
 
@@ -154,21 +178,6 @@ lapply(clist, plotweb)
 Seed analysis and joining 
 
 ```{r}
-  
-# combine all data 
-focalSeeds <- smallSeeds %>% 
-  pivot_wider(id_cols = c(treatment, BP, genSpec), names_from = sp, values_from = ratio_seedsPerPlant) %>%
-  inner_join(Whole_df, by = "treatment", relationship = "many-to-many") %>%
-  subset(select = -c(overlapNet))
-
-# pivot df wider for tidyness 
-spNames <- unique(seeds$sp)
- CORfocalSeeds <- focalSeeds %>%
-   select(!c(partner_diversity, diff)) %>%
-   pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
-   pivot_wider(names_from = group, values_from = overlap) %>%
-   rowwise() %>%
-   mutate(overlap = mean(c(pollinators,plants)))
  
 # linear regression 
 lm1 = lm(CORfocalSeeds$seedOutput~CORfocalSeeds$diff)
