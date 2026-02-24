@@ -53,6 +53,25 @@ for (b in bp){
 
 #whole experiment network:
 pp_all <- as.matrix(table(pollinators$sp, pollinators$Genus))
+
+# find average Open - Closed per plant per group 
+zeros <- seeds[,c('OsPerb','CsPerb')]==0 
+seeds[,c('OsPerb','CsPerb')][zeros] <- NA 
+
+# find means, differences and ratios of pollinator impact 
+seedsGrouped <- seeds %>%
+  mutate(ratio_poll_impact = OsPerb/CsPerb) %>%
+  group_by(sp, BP) %>%
+  mutate(ratio_seedsPerPlant = mean(ratio_poll_impact, na.rm = TRUE)) %>%
+  distinct(BP, genSpec, sp, ratio_seedsPerPlant, ratio_poll_impact) # remove unneccesary collumns
+
+# add treatment column 
+seedsGrouped$treatment <- paste(seedsGrouped$genSpec, substr(seedsGrouped$BP,1,1), sep = "_")
+
+pollsSeedsdf <- seedsGrouped %>%
+  inner_join(pollinators, by = c("BP", "sp"), relationship = "many-to-many") %>%
+  select(-c(Block, Plot, sp.no)) 
+
 ```
 
 Network analysis by block 
@@ -135,24 +154,6 @@ lapply(clist, plotweb)
 Seed analysis and joining 
 
 ```{r}
-# find average Open - Closed per plant per group 
-zeros <- seeds[,c('OsPerb','CsPerb')]==0 
-seeds[,c('OsPerb','CsPerb')][zeros] <- NA 
-
-# find means, differences and ratios of pollinator impact 
-seedsGrouped <- seeds %>%
-  mutate(diff_poll_impact = OsPerb -CsPerb) %>%
-  mutate(ratio_poll_impact = OsPerb/CsPerb) %>%
-  group_by(sp, BP) %>%
-  mutate(diff_seedsPerPlant = mean(diff_poll_impact, na.rm = TRUE)) %>%
-  mutate(ratio_seedsPerPlant = mean(ratio_poll_impact, na.rm = TRUE))
-
-#remove unneccesary collumns 
-smallSeeds <- seedsGrouped %>% 
-  distinct(genSpec, sp, BP, ratio_seedsPerPlant)
-
-# add treatment column 
-smallSeeds$treatment <- paste(smallSeeds$genSpec, substr(smallSeeds$BP,1,1), sep = "_")
   
 # combine all data 
 focalSeeds <- smallSeeds %>% 
@@ -289,43 +290,43 @@ focalSeeds %>% filter(!is.na(CLAPUR)) %>%
 dissimilarity?
 
 ```{r}
-## calculate total interactions for each unique pol-plant pair##
-# plant_association <- polls %>%
-#   mutate(across(where(is.character), str_trim)) %>%
-#   group_by(Genus, sp, BP) %>%
-#   summarise(count = n(), .groups = "drop")
-# 
-# association_dta <- plant_association %>% 
-#   group_by(Genus, sp) %>%
-#   summarize(count = round(mean(count)), .groups = "drop") %>% 
-#    pivot_wider(
-#     names_from = sp,
-#     values_from = count,
-#     values_fill = 0)
+#calculate total interactions for each unique pol-plant pair##
+plant_association <- polls %>%
+  mutate(across(where(is.character), str_trim)) %>%
+  group_by(Genus, sp, BP) %>%
+  summarise(count = n(), .groups = "drop")
 
-# association_matrix <- association_dta  %>% 
-#   select(-Genus) %>% 
-#   as.matrix()
-# bee_names <- association_dta$Genus
-# rownames(association_matrix) <- bee_names
-# association_matrix[association_matrix > 0] <- 1
+association_dta <- plant_association %>%
+  group_by(Genus, sp) %>%
+  summarize(count = round(mean(count)), .groups = "drop") %>%
+   pivot_wider(
+    names_from = sp,
+    values_from = count,
+    values_fill = 0)
 
-# set.seed(1)
-# jaccard_diss <- vegdist(t(association_matrix), method = "jaccard")
-# jaccard_matrix <- as.matrix(jaccard_diss)
-# sort(colSums(jaccard_matrix), decreasing = TRUE)
-# jaccard_long <- reshape2::melt(as.matrix(jaccard_matrix))
-# 
-# jaccard_plot <- jaccard_long %>% 
-#   as.data.frame() %>% 
-#   ggplot(aes(x = Var1, y = Var2, fill = value)) +
-#   geom_tile() +
-#   scale_fill_viridis_c(option = "viridis") +
-#   theme_minimal() +
-#   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-#   labs(x = NULL, y = NULL, fill = "Dissimilarity Index")
-# 
-# jaccard_plot
+association_matrix <- association_dta  %>%
+  select(-(Genus))
+           
+bee_names <- association_dta$Genus
+rownames(association_matrix) <- bee_names
+association_matrix[association_matrix > 0] <- 1
+
+set.seed(1)
+jaccard_diss <- vegdist(t(association_matrix), method = "jaccard")
+jaccard_matrix <- as.matrix(jaccard_diss)
+sort(colSums(jaccard_matrix), decreasing = TRUE)
+jaccard_long <- reshape2::melt(as.matrix(jaccard_matrix))
+
+jaccard_plot <- jaccard_long %>%
+  as.data.frame() %>%
+  ggplot(aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "viridis") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = NULL, y = NULL, fill = "Dissimilarity Index")
+
+jaccard_plot
 
 
 ```
