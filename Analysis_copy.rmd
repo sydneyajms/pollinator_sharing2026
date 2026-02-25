@@ -131,14 +131,14 @@ richness <- data.frame(
   treatment = names(plist), 
   richness = richness )
 
-######### need to make BP for pollinator data as well 
+####### Need to make BP for pollinator data as well 
 
 
 # Join all characteristics toegther into df
 Whole_df <- nichedf %>%
-  inner_join(richness, by = c("treatment", relationship = "many-to-many" ) %>%
-  inner_join(visitation, by = "treatment", relationship = "many-to-many" ) %>%
-  inner_join(nestedness, by = "treatment", relationship = "many-to-many") %>%
+  inner_join(richness, by = c("treatment", relationship = "many-to-one" ) %>%
+  inner_join(visitation, by = "treatment", relationship = "many-to-one" ) %>%
+  inner_join(nestedness, by = "treatment", relationship = "many-to-one") %>%
   inner_join(Hdf, by = c("treatment", "group"), relationship = "many-to-many") %>%
   inner_join(Total_niche, by = "group", relationship = "many-to-many") %>%
   mutate(diffOverlap = overlapNet - overlap) %>%
@@ -146,14 +146,13 @@ Whole_df <- nichedf %>%
   
 
 # combine all data 
-focalSeeds <- smallSeeds %>% 
+focalSeeds <- seedsGrouped %>% 
   pivot_wider(id_cols = c(treatment, BP, genSpec), names_from = sp, values_from = ratio_seedsPerPlant) %>%
-  inner_join(Whole_df, by = "treatment", relationship = "many-to-many") %>%
-  subset(select = -c(overlapNet))
+  inner_join(Whole_df, by = "treatment", relationship = "many-to-many")
 
 # pivot df wider for tidyness 
 spNames <- unique(seeds$sp)
- CORfocalSeeds <- focalSeeds %>%
+WIDEfocalSeeds <- focalSeeds %>%
    select(!c(partner_diversity, diff)) %>%
    pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
    pivot_wider(names_from = group, values_from = overlap) %>%
