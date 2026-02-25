@@ -105,6 +105,7 @@ nestednessdf <- nestedness %>%
   tibble::rownames_to_column("metric") %>%
   pivot_longer(cols = -metric, names_to = "treatment", values_to = "nestedness") %>%
   select(-metric)
+niche
 
 names(Total_niche)[1] <- "overlapNet"
 rownames(Total_niche) <- c("pollinators", "plants")
@@ -136,10 +137,10 @@ richness <- data.frame(
 
 # Join all characteristics toegther into df
 Whole_df <- nichedf %>%
-  inner_join(richness, by = c("treatment", relationship = "many-to-one" ) %>%
+  inner_join(richness, by = "treatment", relationship = "many-to-one" ) %>%
   inner_join(visitation, by = "treatment", relationship = "many-to-one" ) %>%
   inner_join(nestedness, by = "treatment", relationship = "many-to-one") %>%
-  inner_join(Hdf, by = c("treatment", "group"), relationship = "many-to-many") %>%
+  inner_join(Hdf, by = "group", relationship = "many-to-many") %>%
   inner_join(Total_niche, by = "group", relationship = "many-to-many") %>%
   mutate(diffOverlap = overlapNet - overlap) %>%
   select(-c(overlapNet))
@@ -168,6 +169,8 @@ Visualise Whole Networks
 library(RColorBrewer)
 cols <- hcl.colors(20, "Peach", rev = TRUE)
 lapply(clist, visweb, square = "defined", box.col = "black", def.col = cols, labsize = 0.5, text = "interaction", textcol = "black", NA.col = "white")
+
+lapply(plist, visweb, square = "defined", box.col = "black", def.col = cols, labsize = 0.5, text = "interaction", textcol = "black", NA.col = "white")
 
 # make overlap models
 lapply(clist, plotweb)
