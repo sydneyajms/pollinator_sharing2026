@@ -105,9 +105,12 @@ nestednessdf <- nestedness %>%
   tibble::rownames_to_column("metric") %>%
   pivot_longer(cols = -metric, names_to = "treatment", values_to = "nestedness") %>%
   select(-metric)
-niche
+nichedfwide <- nichedf %>%
+  pivot_wider(id_cols = "treatment",names_from = "group", values_from = "overlap") %>%
+  rename("pollOverlap" = pollinators,
+         "plantOverlap" = plants)
 
-names(Total_niche)[1] <- "overlapNet"
+colnames(Total_niche)[1] <- "overlapNet"
 rownames(Total_niche) <- c("pollinators", "plants")
 Total_niche <- Total_niche %>%
   tibble::rownames_to_column("group")
@@ -132,24 +135,19 @@ richness <- data.frame(
   treatment = names(plist), 
   richness = richness )
 
-####### Need to make BP for pollinator data as well 
-
-
 # Join all characteristics toegther into df
-Whole_df <- nichedf %>%
-  inner_join(richness, by = "treatment", relationship = "many-to-one" ) %>%
-  inner_join(visitation, by = "treatment", relationship = "many-to-one" ) %>%
-  inner_join(nestedness, by = "treatment", relationship = "many-to-one") %>%
-  inner_join(Hdf, by = "group", relationship = "many-to-many") %>%
-  inner_join(Total_niche, by = "group", relationship = "many-to-many") %>%
-  mutate(diffOverlap = overlapNet - overlap) %>%
-  select(-c(overlapNet))
-  
+Whole_df <- nichedfwide %>%
+  inner_join(richness, by = "treatment" ) %>%
+  inner_join(visitation, by = "treatment" ) %>%
+  inner_join(nestednessdf, by = "treatment") %>%
+  inner_join(Hdf, by = "treatment", relationship = "many-to-many") %>%
+  inner_join(Total_niche, by = "group", relationship = "many-to-one")
 
+  
 # combine all data 
 focalSeeds <- seedsGrouped %>% 
-  pivot_wider(id_cols = c(treatment, BP, genSpec), names_from = sp, values_from = ratio_seedsPerPlant) %>%
-  inner_join(Whole_df, by = "treatment", relationship = "many-to-many")
+  pivot_wider(names_from = sp, values_from = ratio_seedsPerPlant) %>%
+  inner_join(Whole_df, by = "treatment")
 
 # pivot df wider for tidyness 
 spNames <- unique(seeds$sp)
