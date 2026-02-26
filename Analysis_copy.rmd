@@ -63,7 +63,7 @@ seedsGrouped <- seeds %>%
   mutate(ratio_poll_impact = OsPerb/CsPerb) %>%
   group_by(sp, BP) %>%
   mutate(ratio_seedsPerPlant = mean(ratio_poll_impact, na.rm = TRUE)) %>%
-  distinct(BP, genSpec, sp, ratio_seedsPerPlant, ratio_poll_impact) # remove unneccesary collumns
+  distinct(BP, genSpec, sp, ratio_seedsPerPlant) # remove unneccesary collumns
 
 # add treatment column 
 seedsGrouped$treatment <- paste(seedsGrouped$genSpec, substr(seedsGrouped$BP,1,1), sep = "_")
@@ -152,11 +152,10 @@ focalSeeds <- seedsGrouped %>%
 # pivot df wider for tidyness 
 spNames <- unique(seeds$sp)
 WIDEfocalSeeds <- focalSeeds %>%
-   select(!c(partner_diversity, diff)) %>%
    pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
-   pivot_wider(names_from = group, values_from = overlap) %>%
    rowwise() %>%
-   mutate(overlap = mean(c(pollinators,plants)))
+   mutate(AVoverlap = mean(c(pollOverlap,plantOverlap))) %>%
+  select(-group)
 
 ```
 
