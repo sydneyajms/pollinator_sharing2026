@@ -25,6 +25,10 @@ allplants <- unique(pollinators$sp)
 allsp <- c(allpolls, allplants)
 BP <- unique(pollsSeedsdf$BP)
 
+trtVersions <- data.frame(
+  treatment = focalSeeds$treatment, 
+  genSpec = focalSeeds$genSpec)
+
 bigmat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
 for (i in names(plist)) {
   degree <- specieslevel(plist[[i]], level = "both", index = "degree")
@@ -33,6 +37,11 @@ for (i in names(plist)) {
   bigmat[i,rownames(polls1)] <- unlist(polls1)
   bigmat[i,rownames(plants1)] <- unlist(plants1)
 }
+# convert matrix to df 
+degreedf <- as.data.frame(bigmat)
+degreedf <- degreedf %>%
+  rownames_to_column(var = "treatment") %>%
+  inner_join(trtVersions, by = "treatment")
 
 # find PSI for each plant/poll in each treatment 
 
@@ -41,17 +50,11 @@ for (i in names(plist)) {
   PSIval <- specieslevel(plist[[i]], level = "higher", index = "PSI")
   PSImat[i,rownames(PSIval)] <- unlist(PSIval)
 }
-
-#visualise PSI
-
-# Create a bar plot of PSI
-ggplot(PSImat, aes(x = colnames(PSImat))) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  theme_minimal() +
-  labs(title = "Pollination Service Index (PSI) by Pollinator",
-       x = "Pollinator Species",
-       y = "PSI") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# convert matrix to df 
+PSIdf <- as.data.frame(PSImat)
+PSIdf <- PSIdf %>%
+  rownames_to_column(var = "treatment")%>%
+  inner_join(trtVersions, by = "treatment")
 
 # find specialization for each plant/poll in each treatment
 
@@ -64,14 +67,71 @@ for (i in names(plist)) {
   dmat[i,rownames(plants1)] <- unlist(plants1)
 }
 
-# find node specialisation for each plant/poll in each treatment 
+# convert matrix to df 
+ddf <- as.data.frame(dmat)
+ddf <- ddf %>%
+  rownames_to_column(var = "treatment")%>%
+  inner_join(trtVersions, by = "treatment")
 
-nodemat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
-for (i in names(plist)) {
-  node <- nodespec(plist[[i]], inf.replace = NA)
-  polls1 <- node$`higher level`
-  plants1 <- node$`lower level`
-  nodemat[i,rownames(polls1)] <- unlist(polls1)
-  nodemat[i,rownames(plants1)] <- unlist(plants1)
-}
 ```
+
+visualize species level characteristics: DEGREE 
+
+```{r}
+# plot degree for plants 
+degreedf_long <- degreedf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "degree") %>%
+  filter(species %in% allplants)
+ggplot(degreedf_long, aes(x = degree, fill = genSpec)) +
+  geom_histogram(alpha = 0.5, position = "identity", bins = 6) +
+  facet_wrap(~ genSpec)
+
+# plot degree for pollinators 
+degreedf_long <- degreedf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "degree") %>%
+  filter(species %in% allpolls)
+ggplot(degreedf_long, aes(x = degree, fill = genSpec)) +
+  geom_histogram(alpha = 0.5, position = "identity", bins = 6) +
+  facet_wrap(~ genSpec)
+
+```
+
+visualize species level characteristics: PSI 
+
+```{r}
+# plot PSI
+PSIdf_long <- PSIdf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "PSI")
+ggplot(PSIdf_long, aes(x = PSI, fill = genSpec)) +
+  geom_histogram(alpha = 0.2, position = "identity", bins = 20) +
+  geom_density(linewidth = 0.2, alpha = 0.5) +
+  facet_wrap(~ genSpec)
+
+```
+
+visualize species level characteristics: SPECIALIZATION 
+
+```{r}
+# plot specalisation for plants 
+ddf_long <- ddf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "specialisation") %>%
+  filter(species %in% allplants)
+ggplot(ddf_long, aes(x = specialisation, fill = genSpec)) +
+  geom_histogram(alpha = 0.2, position = "identity", bins = 10) +
+  geom_density(linewidth = 0.2, alpha = 0.5)
+
+# plot degree for pollinators 
+ddf_long <- ddf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "specialisation") %>%
+  filter(species %in% allpolls)
+ggplot(ddf_long, aes(x = specialisation, fill = genSpec)) +
+  geom_histogram(alpha = 0.2, position = "identity", bins = 10) +
+  geom_density(linewidth = 0.2, alpha = 0.5)
+
+```
+
