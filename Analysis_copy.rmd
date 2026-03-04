@@ -74,7 +74,7 @@ pollsSeedsdf <- seedsGrouped %>%
 
 ```
 
-Network analysis by block 
+Network analysis by block -> group level 
 
 ```{r}
 # find network and group level characteristics (by block/plot)
@@ -164,13 +164,16 @@ Visualise Whole Networks
 ```{r}
 # visualise network as heatmap
 library(RColorBrewer)
-cols <- hcl.colors(20, "Peach", rev = TRUE)
-lapply(clist, visweb, square = "defined", box.col = "black", def.col = cols, labsize = 0.5, text = "interaction", textcol = "black", NA.col = "white")
+cols <- hcl.colors(15, "Hawaii")
+cols2 <- hcl.colors(15, "Red-Yellow", rev = TRUE)
 
-lapply(plist, visweb, square = "defined", box.col = "black", def.col = cols, labsize = 0.5, text = "interaction", textcol = "black", NA.col = "white")
+# heat map per treatment 
+lapply(clist, visweb, square = "defined", box.col = "black", def.col = cols2, labsize = 0.8, text = "interaction", textcol = "black", NA.col = "white")
 
 # make overlap models
-lapply(clist, plotweb)
+lapply(clist, plotweb, empty = TRUE, higher_color = cols, lower_color = cols, text_size = 0.8, srt = 90)
+
+
 ```
 
 
@@ -179,9 +182,8 @@ Seed analysis and joining
 ```{r}
  
 # linear regression 
-lm1 = lm(CORfocalSeeds$seedOutput~CORfocalSeeds$diff)
-lm2 = lm(CORfocalSeeds$overlap~CORfocalSeeds$genSpec)
-lm3 = lm(CORfocalSeeds$overlap~CORfocalSeeds$richness)
+lm1 = lm(WIDEfocalSeeds$seedOutput~WIDEfocalSeeds$AVoverlap)
+
 
  
 ```
@@ -190,41 +192,39 @@ seed plotting - make sure to change lm1 depending on relationship being plotted
 
 ```{r}
 # plot overlap against seed ratios, sep = species 
-ggplot(CORfocalSeeds, aes(x = overlap, y = seedOutput, color = genSpec)) +
+ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec)) +
   geom_point() +
   facet_wrap(~sp) +
   labs(x="Overlap") 
 
 # plot overlap against seed ratios, sep = treatment 
-ggplot(CORfocalSeeds, aes(x = overlap, y = seedOutput, color = genSpec)) +
+ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec)) +
   geom_point() +
   facet_wrap(~genSpec) +
   labs(x="Overlap")
 
 # plot overlap against seed raatios for all 
-ggplot(CORfocalSeeds, aes(x = overlap, y = seedOutput, color = genSpec, shape = sp)) +
+ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec, shape = sp)) +
   geom_point() +
-  geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
+  #geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
   labs(x="Overlap") 
 
 # plot overlap for treatments
-ggplot(CORfocalSeeds, aes(x = genSpec, y = overlap, fill = genSpec)) +
+ggplot(WIDEfocalSeeds, aes(x = genSpec, y = AVoverlap, fill = genSpec)) +
   geom_boxplot() +
   stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
   labs(x="Treatment", y = "Overlap") 
 
 #plot seed ratios for treatments
-ggplot(CORfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
+ggplot(WIDEfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
   geom_boxplot() +
   stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
   labs(x="Treatment", y = "Seeds")
 
 # plot visits against overlap 
-ggplot(CORfocalSeeds, aes(x = total_visits, y = richness, color = genSpec)) +
+ggplot(WIDEfocalSeeds, aes(x = total_visits, y = richness, color = genSpec)) +
   geom_point() +
-  geom_abline(intercept = coef(lm3)[1], slope = coef(lm3)[2], color = "purple") +
   labs(x="visits", y = "richness")
-
 
 
 ```
@@ -269,30 +269,22 @@ ggplot(PlantWhole_df, aes(x = treatment_name, y = overlap, group = treatment_nam
 Plot seed output per species per treatment 
 
 ```{r}
-# plot seed output of each focal species across treatments 
-focalSeeds %>% filter(!is.na(CLAAMO)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = CLAAMO, fill = genSpec)) + 
-  geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "CLAAMO Reproductive Output")
+ggplot(WIDEfocalSeeds) +
+   geom_boxplot(aes(x = sp, y = seedOutput)) +
+   facet_wrap(~genSpec) +
+   labs(y ="Seed output", x = "Focal Species", title = "Reproductive Output: Treatment")
 
-focalSeeds %>% filter(!is.na(MADELE)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = MADELE, fill = genSpec)) + 
-  geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "MADELE Reproductive Output")
-
-focalSeeds %>% filter(!is.na(CLAPUR)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = CLAPUR, fill = genSpec)) + 
-  geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "CLAPUR Reproductive Output")
-
- focalSeeds %>% filter(!is.na(MICGRA)) %>%
-  droplevels() %>% 
-  ggplot(aes(x = genSpec, y = MICGRA, fill = genSpec)) + 
-  geom_boxplot() +
-  labs(y ="Seed output ratio", x = "Treatment", title = "MICGRA Reproductive Output")
+lm2 <- lm(WIDEfocalSeeds$richness~WIDEfocalSeeds$AVoverlap)
+lm3 <- lm(WIDEfocalSeeds$total_visits~WIDEfocalSeeds$AVoverlap)
+  
+ggplot(WIDEfocalSeeds, aes(x = AVoverlap)) + 
+  geom_point(aes(y = richness, color = "Richness")) + 
+  geom_point(aes(y = total_visits, color = "Visitation")) + 
+  scale_color_hue() +
+  geom_abline(intercept = coef(lm2)[1], slope = coef(lm2)[2], color = "red") +
+  geom_abline(intercept = coef(lm3)[1], slope = coef(lm3)[2], color = "lightblue") +
+  labs(x = "Overlap", y = "Value")
+   
 ```
 
 dissimilarity?

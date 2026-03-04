@@ -17,26 +17,61 @@ library(ggrepel)
 
 
 ```{r cars}
-# find species level characteristics (by species for every block/plot)
-PSI_val <- sapply(plist, specieslevel, level = "both", index = "PSI")
-degree_val <- lapply(plist, specieslevel, level = "higher", index = "degree")
 
-# create empty matrix 
+# find degree for each plant/poll in each treatment  
 
 allpolls <- unique(pollinators$Genus)
 allplants <- unique(pollinators$sp)
 allsp <- c(allpolls, allplants)
-BP <- unique(pollinators$BP)
-bigmat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(BP, allsp))
+BP <- unique(pollsSeedsdf$BP)
 
+bigmat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
 for (i in names(plist)) {
   degree <- specieslevel(plist[[i]], level = "both", index = "degree")
-  polls1 <- unlist(degree$`higher level`)
-  plants1 <- unlist(degree$`lower level`)
-  bigmat[i,rownames(polls1)] <- polls1
-  bigmat[i,rownames(plants1)] <- plants1
+  polls1 <- degree$`higher level`
+  plants1 <- degree$`lower level`
+  bigmat[i,rownames(polls1)] <- unlist(polls1)
+  bigmat[i,rownames(plants1)] <- unlist(plants1)
 }
 
+# find PSI for each plant/poll in each treatment 
 
+PSImat <- matrix(NA, nrow = length(plist), ncol = length(allpolls), dimnames = list(names(plist), allpolls))
+for (i in names(plist)) {
+  PSIval <- specieslevel(plist[[i]], level = "higher", index = "PSI")
+  PSImat[i,rownames(PSIval)] <- unlist(PSIval)
+}
 
+#visualise PSI
+
+# Create a bar plot of PSI
+ggplot(PSImat, aes(x = colnames(PSImat))) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  theme_minimal() +
+  labs(title = "Pollination Service Index (PSI) by Pollinator",
+       x = "Pollinator Species",
+       y = "PSI") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# find specialization for each plant/poll in each treatment
+
+dmat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
+for (i in names(plist)) {
+  d <- specieslevel(plist[[i]], level = "both", index = "d")
+  polls1 <- d$`higher level`
+  plants1 <- d$`lower level`
+  dmat[i,rownames(polls1)] <- unlist(polls1)
+  dmat[i,rownames(plants1)] <- unlist(plants1)
+}
+
+# find node specialisation for each plant/poll in each treatment 
+
+nodemat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
+for (i in names(plist)) {
+  node <- nodespec(plist[[i]], inf.replace = NA)
+  polls1 <- node$`higher level`
+  plants1 <- node$`lower level`
+  nodemat[i,rownames(polls1)] <- unlist(polls1)
+  nodemat[i,rownames(plants1)] <- unlist(plants1)
+}
 ```
