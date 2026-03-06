@@ -73,28 +73,53 @@ ddf <- ddf %>%
   rownames_to_column(var = "treatment")%>%
   inner_join(trtVersions, by = "treatment")
 
+# make dfs long 
+degreedf_long <- degreedf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "degree")
+
+ddf_long <- ddf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "specialization")
+
+PSIdf_long <- PSIdf %>% 
+  pivot_longer(cols = -c(treatment, genSpec),
+               names_to = "species", values_to = "PSI")
+
+
+new <- inner_join(pollsSeedsdf, degreedf_long, by = c("treatment","Genus","genSpec"), relationship = "many-to-many")
+
+# join species level df to poll and seeds df 
+speciesDF <- pollsSeedsdf %>%
+  rename(species = "Genus") %>%
+  inner_join(degreedf_long, by = c("treatment","Genus","genSpec"), relationship = "many-to-many") %>%
+  
+  
+  
+
 ```
 
 visualize species level characteristics: DEGREE 
 
 ```{r}
-# plot degree for plants 
-degreedf_long <- degreedf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "degree") %>%
+
+# plot degree for all plant 
+degreedf_long %>%
   filter(species %in% allplants)
 ggplot(degreedf_long, aes(x = degree, fill = genSpec)) +
-  geom_histogram(alpha = 0.5, position = "identity", bins = 6) +
-  facet_wrap(~ genSpec)
+  geom_histogram(alpha = 0.5, position = "identity", bins = 6)
 
 # plot degree for pollinators 
-degreedf_long <- degreedf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "degree") %>%
+degreedf_long %>%
   filter(species %in% allpolls)
 ggplot(degreedf_long, aes(x = degree, fill = genSpec)) +
-  geom_histogram(alpha = 0.5, position = "identity", bins = 6) +
-  facet_wrap(~ genSpec)
+  geom_histogram(alpha = 0.5, position = "identity", bins = 6)
+
+
+ggplot(new) +
+  geom_density(aes(x = degree, color = "red")) +
+  geom_density(aes(x = ratio_seedsPerPlant, color = "blue"))
+
 
 ```
 
@@ -102,36 +127,30 @@ visualize species level characteristics: PSI
 
 ```{r}
 # plot PSI
-PSIdf_long <- PSIdf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "PSI")
 ggplot(PSIdf_long, aes(x = PSI, fill = genSpec)) +
-  geom_histogram(alpha = 0.2, position = "identity", bins = 20) +
+  geom_histogram(alpha = 0, position = "identity", bins = 20) +
   geom_density(linewidth = 0.2, alpha = 0.5) +
-  facet_wrap(~ genSpec)
+  facet_wrap(~ genSpec) 
 
 ```
 
 visualize species level characteristics: SPECIALIZATION 
 
 ```{r}
-# plot specalisation for plants 
-ddf_long <- ddf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "specialisation") %>%
+# plot specalization for plants 
+ddf_long %>% 
   filter(species %in% allplants)
 ggplot(ddf_long, aes(x = specialisation, fill = genSpec)) +
   geom_histogram(alpha = 0.2, position = "identity", bins = 10) +
   geom_density(linewidth = 0.2, alpha = 0.5)
 
 # plot degree for pollinators 
-ddf_long <- ddf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "specialisation") %>%
+ddf_long %>%
   filter(species %in% allpolls)
 ggplot(ddf_long, aes(x = specialisation, fill = genSpec)) +
   geom_histogram(alpha = 0.2, position = "identity", bins = 10) +
   geom_density(linewidth = 0.2, alpha = 0.5)
+
 
 ```
 
