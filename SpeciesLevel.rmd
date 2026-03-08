@@ -87,14 +87,12 @@ PSIdf_long <- PSIdf %>%
                names_to = "species", values_to = "PSI")
 
 
-new <- inner_join(pollsSeedsdf, degreedf_long, by = c("treatment","Genus","genSpec"), relationship = "many-to-many")
-
 # join species level df to poll and seeds df 
 speciesDF <- pollsSeedsdf %>%
   rename(species = "Genus") %>%
-  inner_join(degreedf_long, by = c("treatment","Genus","genSpec"), relationship = "many-to-many") %>%
-  
-  
+  inner_join(degreedf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
+  inner_join(PSIdf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
+  inner_join(ddf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many")
   
 
 ```
@@ -116,9 +114,14 @@ ggplot(degreedf_long, aes(x = degree, fill = genSpec)) +
   geom_histogram(alpha = 0.5, position = "identity", bins = 6)
 
 
-ggplot(new) +
-  geom_density(aes(x = degree, color = "red")) +
-  geom_density(aes(x = ratio_seedsPerPlant, color = "blue"))
+ggplot(speciesDF) +
+  geom_density(aes(x = degree, color = "degree")) +
+  geom_density(aes(x = ratio_seedsPerPlant, color = "reproductive output"))
+
+ggplot(speciesDF) +
+  geom_boxplot(aes(x = genSpec, y =degree, fill = genSpec))
+  facet_wrap(~genSpec)
+
 
 
 ```
@@ -140,17 +143,20 @@ visualize species level characteristics: SPECIALIZATION
 # plot specalization for plants 
 ddf_long %>% 
   filter(species %in% allplants)
-ggplot(ddf_long, aes(x = specialisation, fill = genSpec)) +
-  geom_histogram(alpha = 0.2, position = "identity", bins = 10) +
+ggplot(ddf_long, aes(x = specialization, fill = genSpec)) +
+  #geom_histogram(alpha = 0.0, position = "identity", bins = 10) +
   geom_density(linewidth = 0.2, alpha = 0.5)
 
 # plot degree for pollinators 
 ddf_long %>%
   filter(species %in% allpolls)
-ggplot(ddf_long, aes(x = specialisation, fill = genSpec)) +
-  geom_histogram(alpha = 0.2, position = "identity", bins = 10) +
+ggplot(ddf_long, aes(x = specialization, fill = genSpec)) +
+  #geom_histogram(alpha = 0.0, position = "identity", bins = 10) +
   geom_density(linewidth = 0.2, alpha = 0.5)
 
 
 ```
+
+Join network level to species level
+
 
