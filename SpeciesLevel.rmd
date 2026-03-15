@@ -100,29 +100,21 @@ speciesDF <- pollsSeedsdf %>%
 visualize species level characteristics: DEGREE 
 
 ```{r}
-
-# plot degree for all plant 
-degreedf_long %>%
-  filter(species %in% allplants)
-ggplot(degreedf_long, aes(x = degree, fill = genSpec)) +
-  geom_histogram(alpha = 0.5, position = "identity", bins = 6)
-
-# plot degree for pollinators 
-degreedf_long %>%
-  filter(species %in% allpolls)
-ggplot(degreedf_long, aes(x = degree, fill = genSpec)) +
-  geom_histogram(alpha = 0.5, position = "identity", bins = 6)
-
-
+library(ggridges)
 ggplot(speciesDF) +
   geom_density(aes(x = degree, color = "degree")) +
-  geom_density(aes(x = ratio_seedsPerPlant, color = "reproductive output"))
+  geom_density(aes(x = ratio_seedsPerPlant, color = "reproductive output")) +
+  labs(x = "Amount", y = "density")
 
 ggplot(speciesDF) +
   geom_boxplot(aes(x = genSpec, y =degree, fill = genSpec))
-  facet_wrap(~genSpec)
 
-
+species
+ggplot(speciesDF, aes(x = degree, y = genSpec, group = genSpec)) + 
+  geom_density_ridges(aes(fill = genSpec)) +
+ # scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
+  theme(legend.position = "none") +
+  labs(x = "Degree", y = "Treatment")
 
 ```
 
@@ -160,3 +152,15 @@ ggplot(ddf_long, aes(x = specialization, fill = genSpec)) +
 Join network level to species level
 
 
+```{r}
+allCHAR <- speciesDF %>%
+  rename(seedOutput = "ratio_seedsPerPlant") %>%
+  inner_join(WIDEfocalSeeds, by = c("treatment", "seedOutput", "sp", "BP", "genSpec"), relationship = "many-to-many")
+
+# visualise using allCHAR
+
+lm7 <- lm(allCHAR$specialization~allCHAR$AVoverlap)
+ggplot(allCHAR) +
+  geom_point(aes(x = AVoverlap, y = specialization, color = genSpec))+
+  geom_abline(intercept = coef(lm7)[1], slope = coef(lm7)[2], color = "red") 
+```
