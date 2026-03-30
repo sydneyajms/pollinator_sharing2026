@@ -38,4 +38,29 @@ ggplot(WIDEfocalSeeds, aes(x = total_visits, y = richness, color = genSpec)) +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
   labs(x="Visits", y = "Richness", color = "Treatment")
+
+ggplot(speciesDF, aes(x = degree, y = genSpec, group = genSpec)) + 
+  geom_density_ridges(aes(fill = genSpec)) +
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x = "Degree", y = "Treatment", fill = "Treamtment")
+
+ggplot(speciesDF, aes(x = PSI, y = genSpec, group = genSpec)) + 
+  geom_density_ridges(aes(fill = genSpec)) +
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x = "PSI", y = "Treatment", fill = "Treamtment")
+
+lm7 <- lm(allCHAR$specialization~allCHAR$AVoverlap)
+ggplot(allCHAR) +
+  geom_point(aes(x = AVoverlap, y = specialization, color = genSpec))+
+  scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  geom_abline(intercept = coef(lm7)[1], slope = coef(lm7)[2], color = "red") +
+  geom_text(aes(x = 0.75, y = 0.2, label = "p < 0.05"), 
+            color = "red", vjust = -1) +
+  labs(x = "Overlap", y = "Specialization", color = "Treamtment")
 ```
