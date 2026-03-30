@@ -189,12 +189,16 @@ ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec)) +
   facet_wrap(~sp) +
   labs(x="Overlap") 
 
-# plot overlap against seed raatios for all 
+# Overlap against seed ratios for all treatments and species 
 lm1 = lm(WIDEfocalSeeds$seedOutput~WIDEfocalSeeds$AVoverlap)
 ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec, shape = sp)) +
   geom_point() +
   geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
-  labs(x="Overlap") 
+    geom_text(aes(x = 0.75, y = 1.5, label = "p = 0.568"), 
+            color = "red", vjust = -1) +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x="Overlap", y = "Seed Output", color = "Treatment", shape = "Flower Species") 
 
 # plot overlap for treatments
 ggplot(WIDEfocalSeeds, aes(x = genSpec, y = AVoverlap, fill = genSpec)) +
