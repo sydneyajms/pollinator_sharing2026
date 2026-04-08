@@ -17,6 +17,7 @@ library(vegan)
 library(reshape2)
 library(readxl)
 library(cluster)
+library(ggridges)
 
 ```
 
@@ -108,7 +109,7 @@ nestednessdf <- nestedness %>%
   tibble::rownames_to_column("metric") %>%
   pivot_longer(cols = -metric, names_to = "treatment", values_to = "nestedness") %>%
   select(-metric)
-nichedfwide <- nichedf %>%
+nichedf <- nichedf %>%
   pivot_wider(id_cols = "treatment",names_from = "group", values_from = "overlap") %>%
   rename("pollOverlap" = pollinators,
          "plantOverlap" = plants)
@@ -139,7 +140,7 @@ richness <- data.frame(
   richness = richness )
 
 # Join all characteristics toegther into df
-Whole_df <- nichedfwide %>%
+Net_GroupDF <- nichedf %>%
   inner_join(richness, by = "treatment" ) %>%
   inner_join(visitation, by = "treatment" ) %>%
   inner_join(nestednessdf, by = "treatment") %>%
@@ -148,13 +149,13 @@ Whole_df <- nichedfwide %>%
 
   
 # combine all data 
-focalSeeds <- seedsGrouped %>% 
+seedsGrouped <- seedsGrouped %>% 
   pivot_wider(names_from = sp, values_from = ratio_seedsPerPlant) %>%
-  inner_join(Whole_df, by = "treatment")
+  inner_join(Net_GroupDF, by = "treatment")
 
 # pivot df wider for tidyness 
 spNames <- unique(seeds$sp)
-WIDEfocalSeeds <- focalSeeds %>%
+WIDEfocalSeeds <- seedsGrouped %>%
    pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
    rowwise() %>%
    mutate(AVoverlap = mean(c(pollOverlap,plantOverlap))) %>%
@@ -170,11 +171,29 @@ library(RColorBrewer)
 cols <- hcl.colors(15, "Hawaii")
 cols2 <- hcl.colors(15, "Red-Yellow", rev = TRUE)
 
+names1 <- names(clist)
+
 # heat map per treatment 
-lapply(clist, visweb, square = "defined", box.col = "black", def.col = cols2, labsize = 0.8, text = "interaction", textcol = "black", NA.col = "white")
+lapply(seq_along(clist), function(i) {
+  par(mar = rep(1, 4))
+  visweb(clist[[i]],
+          square = "defined", box.col = "black", def.col = cols2, labsize = 0.8, text = "interaction", textcol = "black", NA.col = "white")
+
+  title(main = names1[i], cex = 0.2)
+})
 
 # make overlap models
-lapply(clist, plotweb, empty = TRUE, higher_color = cols, lower_color = cols, text_size = 0.8, srt = 90)
+lapply(seq_along(clist), function(i) {
+  plotweb(clist[[i]],
+          empty = TRUE,
+          higher_color = cols,
+          lower_color = cols,
+          text_size = 0.8,
+          srt = 90)
+
+  title(main = names1[i], cex = 0.5)
+})
+
 
 
 ```
@@ -206,10 +225,6 @@ ggplot(WIDEfocalSeeds, aes(x = genSpec, y = AVoverlap, fill = genSpec)) +
   stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
   labs(x="Treatment", y = "Overlap") 
 
-ggplot(WIDEfocalSeeds, aes(x = genSpec, y = AVoverlap, fill = genSpec)) +
-  geom_boxplot()+ 
-  stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
-  labs(x="Treatment", y = "Overlap") 
 
 #plot seed ratios for treatments
 ggplot(WIDEfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
@@ -217,12 +232,12 @@ ggplot(WIDEfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
   stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
   labs(x="Treatment", y = "Seeds")
 
-# plot visits against overlap 
+# plot visits against richness 
 lm2 <- lm(WIDEfocalSeeds$richness~WIDEfocalSeeds$total_visits)
 ggplot(WIDEfocalSeeds, aes(x = total_visits, y = richness, color = genSpec)) +
   geom_point() +
   geom_abline(intercept = coef(lm2)[1], slope = coef(lm2)[2], color = "red") +
-  labs(x="visits", y = "richness")
+  labs(x="Visits", y = "Richness", color = "Treatment")
 
 # plot overlap and H2
 lm4 <- lm(WIDEfocalSeeds$H2~WIDEfocalSeeds$AVoverlap)
@@ -231,16 +246,50 @@ ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = H2, color = genSpec)) +
   geom_point() +
   geom_abline(intercept = coef(lm4)[1], slope = coef(lm4)[2], color = "red")
 
+# plot richness and visits for each treatment 
+ggplot(WIDEfocalSeeds) +
+  geom_point(aes(x = genSpec, y = richness)) +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x="Treatment", y = "Pollinator Richness", color = "Treatment")
+
 ```
 Plot seed output per species per treatment 
 
 ```{r}
 library(ggbiplot)
 
-ggplot(WIDEfocalSeeds) +
-   geom_point(aes(x = AVoverlap, y = log(seedOutput), color = sp)) +
-  #facet_wrap(~genSpec) +
-   labs(y ="Seed output", x = "overlap", title = "Reproductive Output: Treatment")
+pltpc <- function(pca, pc=c(1,2), group=NA,group2=NA, legInset=c(-.08,-.1), pcex=1.5){
+#pcs <- prcomp(dat)
+  nvar <- dim(pca$x)[2]
+  if (any(!is.na(group))){
+    gr = factor(group)
+  } else {gr = factor(1)}
+  if (any(!is.na(group2))){
+    gr2 = factor(group2)
+  } else {gr2 = factor(1)}
+  groupcol <- c("#F4E7C5", "#678096", "#ACC2CF", "#979461", "#CD5733")
+    #hcl.colors(length(levels(gr2)), "Plasma", alpha=0.9)
+  loadings12 = c(sort(pca$rotation[,pc[1]]), 
+                 sort(pca$rotation[,pc[2]]))
+  #[c(1:5, (nvar-4):nvar)]
+  nmloads = unique(names(loadings12))
+  
+  imp = summary(pca)$importance["Proportion of Variance",pc]*100
+  xlab = paste0('PC',pc[1],' (',imp[1],'% explained)')
+  ylab = paste0('PC',pc[2],' (',imp[2],'% explained)')
+  
+  plot(pca$x[,pc[1]], pca$x[,pc[2]], bg=groupcol[gr], col = groupcol[gr], pch=21, cex=pcex, xlab=xlab,
+       ylab=ylab)
+  for (s in nmloads){
+    x1 <- pca$rotation[s,pc[1]]#*10
+    y1 <- pca$rotation[s,pc[2]]#*10
+    arrows(0,0,x1,y1,0.1)
+    text(x1*1.1,y1*1.1,s, cex=0.5, srt = 90)
+  }
+  legend("bottomright",legend=levels(gr),pch=19,col=groupcol,
+         inset=legInset,xpd=NA,bty='n', cex = 0.8)
+}
 
 # PCA for group-level
 PCdf <- WIDEfocalSeeds %>%
@@ -250,7 +299,7 @@ PCdf <- WIDEfocalSeeds %>%
 
 PCAG <- prcomp(PCdf, scale. = TRUE)
 biplot(PCAG, var.axes = TRUE, cex = 1, xlim = c(-0.3,0.3), ylim = c(-0.3,0.3))
-
+pltpc(PCAG, group=WIDEfocalSeeds$genSpec, legInset=c(0,0))
 
 WIDEfocalSeedsPCA <- cbind(WIDEfocalSeeds, PCAG$x[,1:2])
 
@@ -263,13 +312,15 @@ PCdfSP <- speciesDF %>%
 PCAS <- prcomp(PCdfSP, scale. = TRUE)
 biplot(PCAS)
 
+pltpc(PCAS, group=speciesDF$sp, legInset=c(0,0))
+
 speciesPCA <- cbind(speciesDF, PCAS$x[,1:2])
 
-ggplot(WIDEfocalSeedsPCA) +
-  geom_point(aes(x = PC1, y = PC2, color=genSpec))
 
 ggplot(WIDEfocalSeedsPCA) +
   geom_point(aes(x = PC1, y = seedOutput, color = sp))
+ggplot(WIDEfocalSeedsPCA) +
+  geom_point(aes(x = PC2, y = seedOutput, color = sp))
 
 ggplot(speciesPCA) +
   geom_point(aes(x = PC2, y = PC1, color = genSpec))

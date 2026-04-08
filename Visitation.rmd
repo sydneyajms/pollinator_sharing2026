@@ -125,5 +125,45 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
             color = "red", vjust = -1) +
   labs(x = "Overlap", y = "Pollinator Visitation", color = "Treatment")
 
+# plot overlap for treatments
+ggplot(WIDEfocalSeeds, aes(x = genSpec, y = AVoverlap, fill = genSpec)) +
+  geom_boxplot() +
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
+  labs(x="Treatment", y = "Overlap", fill = "Treatment") 
 
+#plot seed ratios for treatments
+ggplot(WIDEfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
+  geom_boxplot() +
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = 1) +
+  labs(x="Treatment", y = "Seed Output", fill = "Treatment")
+
+ggplot(WIDEfocalSeeds, aes(fill = sp, y = seedOutput, x = genSpec)) +
+  geom_bar(position="dodge", stat="identity") +
+  scale_fill_paletteer_d("nationalparkcolors::Yosemite") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x="Treatment", y = "Seed Output", fill = "Focal Species")
+
+ggplot(WIDEfocalSeeds, aes(x = genSpec, y = richness, fill = genSpec)) +
+  geom_boxplot() +
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = -.3) +
+  labs(x="Treatment", y = "Pollinator Richness", fill = "Treatment") 
+
+ggplot(WIDEfocalSeeds, aes(x = genSpec, y = total_visits, fill = genSpec)) +
+  geom_boxplot() +
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = 0) +
+  labs(x="Treatment", y = "Pollinator Visitation", fill = "Treatment") 
+   
 ```
