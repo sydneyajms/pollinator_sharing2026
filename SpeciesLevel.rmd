@@ -12,6 +12,7 @@ library(bipartite)
 library(ggplot2)
 library(ggeffects)
 library(ggrepel)
+library(ggridges)
 ```
 
 
@@ -26,8 +27,8 @@ allsp <- c(allpolls, allplants)
 BP <- unique(pollsSeedsdf$BP)
 
 trtVersions <- data.frame(
-  treatment = focalSeeds$treatment, 
-  genSpec = focalSeeds$genSpec)
+  treatment = seedsGrouped$treatment, 
+  genSpec = seedsGrouped$genSpec)
 
 bigmat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
 for (i in names(plist)) {
@@ -93,26 +94,23 @@ speciesDF <- pollsSeedsdf %>%
   inner_join(degreedf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
   inner_join(PSIdf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
   inner_join(ddf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many")
-  
 
+species_long <- speciesDF %>%
+  pivot_longer(cols = -c(genSpec, BP, treatment, specialization, ratio_seedsPerPlant, degree, PSI), values_to = "spec") %>%
+  select(-name) %>%
+  select(genSpec, BP, treatment, spec, degree, specialization, PSI, ratio_seedsPerPlant)
 ```
 
 visualize species level characteristics: DEGREE 
 
 ```{r}
-library(ggridges)
 ggplot(speciesDF) +
   geom_density(aes(x = degree, color = "degree")) +
   geom_density(aes(x = ratio_seedsPerPlant, color = "reproductive output")) +
   labs(x = "Amount", y = "density")
 
-ggplot(speciesDF) +
-  geom_boxplot(aes(x = genSpec, y =degree, fill = genSpec))
-
-species
 ggplot(speciesDF, aes(x = degree, y = genSpec, group = genSpec)) + 
   geom_density_ridges(aes(fill = genSpec)) +
- # scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
   theme(legend.position = "none") +
   labs(x = "Degree", y = "Treatment")
 

@@ -42,20 +42,13 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
   labs(x="Visits", y = "Richness", color = "Treatment")
 
 degreedf_long %>%
-  filter(species %in% allplants) %>%
+  filter(species %in% allpolls) %>%
 ggplot(aes(x = degree, y = genSpec, group = genSpec)) + 
   geom_density_ridges(aes(fill = genSpec)) +
   scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  labs(x = "Degree", y = "Treatment", fill = "Treamtment")
-
-ggplot(speciesDF, aes(x = PSI, y = genSpec, group = genSpec)) + 
-  geom_density_ridges(aes(fill = genSpec)) +
-  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
-  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  labs(x = "PSI", y = "Treatment", fill = "Treamtment")
+  labs(x = "Pollinator Degree", y = "Treatment", fill = "Treamtment")
 
 ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = genSpec, group = genSpec)) + 
   geom_density_ridges(aes(fill = genSpec)) +
@@ -64,20 +57,8 @@ ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = genSpec, group = genSpec)) +
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
   labs(x = "Overlap", y = "Treatment", fill = "Treamtment")
 
-
-lm7 <- lm(allCHAR$specialization~allCHAR$AVoverlap)
-ggplot(allCHAR) +
-  geom_point(aes(x = AVoverlap, y = specialization, color = genSpec))+
-  scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
-  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  geom_abline(intercept = coef(lm7)[1], slope = coef(lm7)[2], color = "red") +
-  geom_text(aes(x = 0.75, y = 0.2, label = "p < 0.05"), 
-            color = "red", vjust = -1) +
-  labs(x = "Overlap", y = "Specialization", color = "Treamtment")
-
-lm3 <- lm(speciesDF$ratio_seedsPerPlant~speciesDF$specialization)
-ggplot(speciesDF) +
+lm3 <- lm(species_long$ratio_seedsPerPlant~species_long$specialization)
+ggplot(species_long) +
   geom_point(aes(x = specialization, y = ratio_seedsPerPlant, color = genSpec))+
   scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
@@ -93,7 +74,7 @@ ggplot(WIDEfocalSeedsPCA) +
   scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  geom_abline(intercept = coef(lm8)[1], slope = coef(lm7)[2], color = "red") +
+  geom_abline(intercept = coef(lm8)[1], slope = coef(lm8)[2], color = "red") +
   geom_text(aes(x = -1.3, y = 2.7, label = "p = 0.4416"), 
             color = "red", vjust = -1) +
   labs(x = "PC1", y = "Seed Output", color = "Treatment", shape = "Flower Species")
