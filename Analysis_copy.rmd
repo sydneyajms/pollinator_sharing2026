@@ -14,9 +14,6 @@ library(ggeffects)
 library(ggrepel)
 library(tidyverse)
 library(vegan)
-library(reshape2)
-library(readxl)
-library(cluster)
 library(ggridges)
 
 ```
@@ -67,7 +64,10 @@ seedsGrouped <- seeds %>%
   mutate(ratio_poll_impact = OsPerb/CsPerb) %>%
   group_by(sp, BP) %>%
   mutate(ratio_seedsPerPlant = mean(ratio_poll_impact, na.rm = TRUE)) %>%
-  distinct(BP, genSpec, sp, ratio_seedsPerPlant) # remove unneccesary collumns
+  group_by(sp) %>%
+  mutate(FSM = mean(ratio_seedsPerPlant, na.rm = TRUE)) %>%
+  distinct(BP, genSpec, sp, ratio_seedsPerPlant, FSM)
+  
 
 # add treatment column 
 seedsGrouped$treatment <- paste(seedsGrouped$genSpec, substr(seedsGrouped$BP,1,1), sep = "_")
@@ -149,7 +149,7 @@ Net_GroupDF <- nichedf %>%
 
   
 # combine all data 
-seedsGrouped <- seedsGrouped %>% 
+seedsGrouped <- seedsGrouped %>%
   pivot_wider(names_from = sp, values_from = ratio_seedsPerPlant) %>%
   inner_join(Net_GroupDF, by = "treatment")
 
@@ -159,7 +159,11 @@ WIDEfocalSeeds <- seedsGrouped %>%
    pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
    rowwise() %>%
    mutate(AVoverlap = mean(c(pollOverlap,plantOverlap))) %>%
+   #group_by(genSpec) %>%
+   #mutate(meanNest = mean(nestedness)) %>%
   select(-group)
+  #filter(sp != "MICGRA")
+
 
 ```
 
@@ -198,63 +202,7 @@ lapply(seq_along(clist), function(i) {
 
 ```
 
-
-seed plotting - make sure to change lm1 depending on relationship being plotted
-
-```{r}
-# plot overlap against seed ratios, sep = species 
-ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec)) +
-  geom_point() +
-  facet_wrap(~sp) +
-  labs(x="Overlap") 
-
-# Overlap against seed ratios for all treatments and species 
-lm1 = lm(WIDEfocalSeeds$seedOutput~WIDEfocalSeeds$AVoverlap)
-ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec, shape = sp)) +
-  geom_point() +
-  geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
-    geom_text(aes(x = 0.75, y = 1.5, label = "p = 0.568"), 
-            color = "red", vjust = -1) +
-  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  labs(x="Overlap", y = "Seed Output", color = "Treatment", shape = "Flower Species") 
-
-# plot overlap for treatments
-ggplot(WIDEfocalSeeds, aes(x = genSpec, y = AVoverlap, fill = genSpec)) +
-  geom_boxplot() +
-  stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
-  labs(x="Treatment", y = "Overlap") 
-
-
-#plot seed ratios for treatments
-ggplot(WIDEfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
-  geom_boxplot() +
-  stat_summary(fun = median, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
-  labs(x="Treatment", y = "Seeds")
-
-# plot visits against richness 
-lm2 <- lm(WIDEfocalSeeds$richness~WIDEfocalSeeds$total_visits)
-ggplot(WIDEfocalSeeds, aes(x = total_visits, y = richness, color = genSpec)) +
-  geom_point() +
-  geom_abline(intercept = coef(lm2)[1], slope = coef(lm2)[2], color = "red") +
-  labs(x="Visits", y = "Richness", color = "Treatment")
-
-# plot overlap and H2
-lm4 <- lm(WIDEfocalSeeds$H2~WIDEfocalSeeds$AVoverlap)
-  
-ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = H2, color = genSpec)) +
-  geom_point() +
-  geom_abline(intercept = coef(lm4)[1], slope = coef(lm4)[2], color = "red")
-
-# plot richness and visits for each treatment 
-ggplot(WIDEfocalSeeds) +
-  geom_point(aes(x = genSpec, y = richness)) +
-  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  labs(x="Treatment", y = "Pollinator Richness", color = "Treatment")
-
-```
-Plot seed output per species per treatment 
+Plot biplots 
 
 ```{r}
 library(ggbiplot)
@@ -327,115 +275,4 @@ ggplot(speciesPCA) +
 
 ```
 
- Try to make NMDS
-
-```{r}
-# nmds_data <- allCHAR %>%
-#   select(genSpec,
-#          BP,
-#          richness,
-#          total_visits,
-#          nestedness,
-#          H2,
-#          degree,
-#          specialization,
-#          AVoverlap,
-#          PSI)
-# 
-# # Convert categorical variables to factors
-# nmds_data <- nmds_data %>% 
-#   mutate(across(c(richness,
-#          total_visits,
-#          nestedness,
-#          H2,
-#          degree,
-#          specialization,
-#          AVoverlap,
-#          PSI), as.factor))
-# 
-# 
-# gower_dist <- nmds_data %>%
-#   ungroup() %>% 
-#   select(-genSpec, -sp, -BP) %>%
-#   daisy(metric = "gower")
-#   
-# 
-# set.seed(123)  # reproducibility
-# 
-# nmds <- metaMDS(
-#   gower_dist,
-#   k = 2,
-#   trymax = 100,
-#   autotransform = FALSE
-# )
-# 
-# # Check stress
-# nmds$stress
-# 
-# scores_df <- as.data.frame(scores(nmds))
-# scores_df$BP <- nmds_data$BP
-# scores_df$genSpec <- nmds_data$genSpec
-# 
-# ggplot(scores_df, aes(x = NMDS1, y = NMDS2, color = genSpec)) +
-#   geom_point(size = 3, alpha = 0.85) +
-#   
-#   # ⬇️ ADD THIS LINE
-#   stat_ellipse(type = "t", level = 0.95, linewidth = 1) +
-#   
-#   theme_minimal() +
-#   labs(
-#     title = "NMDS of community characteristics",
-#     subtitle = paste("Stress =", round(nmds$stress, 3)),
-#     color = "genSpec"
-#   ) +
-#   theme(
-#     text = element_text(size = 12),
-#     legend.position = "right"
-#   )
-
-```
-
-
-dissimilarity?
-
-```{r}
-#calculate total interactions for each unique pol-plant pair##
-# plant_association <- polls %>%
-#   mutate(across(where(is.character), str_trim)) %>%
-#   group_by(Genus, sp, BP) %>%
-#   summarise(count = n(), .groups = "drop")
-# 
-# association_dta <- plant_association %>%
-#   group_by(Genus, sp) %>%
-#   summarize(count = round(mean(count)), .groups = "drop") %>%
-#    pivot_wider(
-#     names_from = sp,
-#     values_from = count,
-#     values_fill = 0)
-# 
-# association_matrix <- association_dta  %>%
-#   select(-(Genus))
-#            
-# bee_names <- association_dta$Genus
-# rownames(association_matrix) <- bee_names
-# association_matrix[association_matrix > 0] <- 1
-# 
-# set.seed(1)
-# jaccard_diss <- vegdist(t(association_matrix), method = "jaccard")
-# jaccard_matrix <- as.matrix(jaccard_diss)
-# sort(colSums(jaccard_matrix), decreasing = TRUE)
-# jaccard_long <- reshape2::melt(as.matrix(jaccard_matrix))
-# 
-# jaccard_plot <- jaccard_long %>%
-#   as.data.frame() %>%
-#   ggplot(aes(x = Var1, y = Var2, fill = value)) +
-#   geom_tile() +
-#   scale_fill_viridis_c(option = "viridis") +
-#   theme_minimal() +
-#   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-#   labs(x = NULL, y = NULL, fill = "Dissimilarity Index")
-# 
-# jaccard_plot
-
-```
 

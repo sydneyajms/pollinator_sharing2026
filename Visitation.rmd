@@ -7,6 +7,15 @@ date: "2026-03-30"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(paletteer)
+library(tidyr)
+library(dplyr)
+library(bipartite)
+library(ggplot2)
+library(ggeffects)
+library(ggrepel)
+library(tidyverse)
+library(vegan)
+library(ggridges)
 ```
 
 
@@ -17,16 +26,28 @@ library(paletteer)
 ```{r pressure, echo=FALSE}
 # Overlap against seed ratios for all treatments and species 
 lm1 = lm(WIDEfocalSeeds$seedOutput~WIDEfocalSeeds$AVoverlap)
+
 ggplot(WIDEfocalSeeds, aes(x = AVoverlap, y = seedOutput, color = genSpec, shape = sp)) +
   geom_point(size = 5, alpha = 0.9) +
   scale_shape_manual(values = c(15, 16, 17, 18, 19)) +
   scale_colour_paletteer_d("nationalparkcolors::ArcticGates") +
-  geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
-    geom_text(aes(x = 0.75, y = 1.5, label = "p = 0.568"), 
-            color = "red", vjust = -1) +
+  #geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], color = "red") +
+   # geom_text(aes(x = 0.75, y = 1.5, label = "p = 0.6345"),color = "red", vjust = -1) +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  labs(x="Overlap", y = "Seed Output", color = "Treatment", shape = "Flower Species") 
+  labs(x="Overlap", y = "Seed Output", color = "Treatment", shape = "Flower Species") +
+  facet_wrap(~sp)
+
+ggplot(seedsGrouped) +
+  geom_point(aes(x = genSpec, y = ratio_seedsPerPlant, color = sp), size = 5) +
+  geom_point(aes(x = genSpec, y = FSM), size = 2) +
+  scale_shape_manual(values = c(15, 16, 17, 18, 19)) +
+  scale_colour_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x="Treatment", y = "Seed Output", color = "Flower Species") +
+  facet_wrap(~sp)
+
 
 # plot visits against richness 
 lm2 <- lm(WIDEfocalSeeds$richness~WIDEfocalSeeds$total_visits)
@@ -115,6 +136,7 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
   stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = -0.5) +
   labs(x="Treatment", y = "Overlap", fill = "Treatment") 
 
+
 #plot seed ratios for treatments
 ggplot(WIDEfocalSeeds, aes(x = genSpec, y = seedOutput, fill = genSpec)) +
   geom_boxplot() +
@@ -129,7 +151,7 @@ ggplot(WIDEfocalSeeds, aes(fill = sp, y = seedOutput, x = genSpec)) +
   scale_fill_paletteer_d("nationalparkcolors::Yosemite") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  labs(x="Treatment", y = "Seed Output", fill = "Focal Species")
+  labs(x="Treatment", y = "Seed Output", fill = "Flower Species")
 
 ggplot(WIDEfocalSeeds, aes(x = genSpec, y = richness, fill = genSpec)) +
   geom_boxplot() +
@@ -144,7 +166,24 @@ ggplot(WIDEfocalSeeds, aes(x = genSpec, y = total_visits, fill = genSpec)) +
   scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = 0) +
+  stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = 0.8) +
   labs(x="Treatment", y = "Pollinator Visitation", fill = "Treatment") 
-   
+
+
 ```
+
+SPEC only vs GEN only 
+
+```{r}
+genSpecdf <- WIDEfocalSeeds %>%
+  filter(genSpec == "genOnly" | genSpec == "specOnly")
+
+ggplot(genSpecdf, aes(x = genSpec, y = genSpec, group = genSpec)) + 
+  geom_density_ridges(aes(fill = genSpec)) +
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x = "Overlap", y = "Treatment", fill = "Treamtment")
+
+```
+MIXES only 
