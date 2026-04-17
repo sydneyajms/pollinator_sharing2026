@@ -159,10 +159,10 @@ WIDEfocalSeeds <- seedsGrouped %>%
    pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
    rowwise() %>%
    mutate(AVoverlap = mean(c(pollOverlap,plantOverlap))) %>%
-   #group_by(genSpec) %>%
-   #mutate(meanNest = mean(nestedness)) %>%
+   group_by(genSpec) %>%
+   mutate(meanH2 = mean(H2)) %>%
   select(-group)
-  #filter(sp != "MICGRA")
+
 
 
 ```
