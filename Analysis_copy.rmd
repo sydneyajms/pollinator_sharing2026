@@ -64,9 +64,9 @@ seedsGrouped <- seeds %>%
   mutate(ratio_poll_impact = OsPerb/CsPerb) %>%
   group_by(sp, BP) %>%
   mutate(ratio_seedsPerPlant = mean(ratio_poll_impact, na.rm = TRUE)) %>%
-  group_by(sp) %>%
-  mutate(FSM = mean(ratio_seedsPerPlant, na.rm = TRUE)) %>%
-  distinct(BP, genSpec, sp, ratio_seedsPerPlant, FSM)
+ # group_by(sp) %>%
+#  mutate(FSM = mean(ratio_seedsPerPlant, na.rm = TRUE)) %>%
+  distinct(BP, genSpec, sp, ratio_seedsPerPlant)
   
 
 # add treatment column 
@@ -155,6 +155,7 @@ seedsGrouped <- seedsGrouped %>%
 
 # pivot df wider for tidyness 
 spNames <- unique(seeds$sp)
+
 WIDEfocalSeeds <- seedsGrouped %>%
    pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
    rowwise() %>%
@@ -163,6 +164,15 @@ WIDEfocalSeeds <- seedsGrouped %>%
    mutate(meanH2 = mean(H2)) %>%
   select(-group)
 
+WIDEfocalSeeds1 <- WIDEfocalSeeds
+
+WIDEfocalSeeds1$genSpec <- gsub("genOnly", "Generalists", WIDEfocalSeeds1$genSpec)
+WIDEfocalSeeds1$genSpec <- gsub("specOnly", "Specialists", WIDEfocalSeeds1$genSpec)
+WIDEfocalSeeds1$genSpec <- gsub("genSpec1", "Mix1", WIDEfocalSeeds1$genSpec)
+WIDEfocalSeeds1$genSpec <- gsub("genSpec3", "Mix2", WIDEfocalSeeds1$genSpec)
+WIDEfocalSeeds1$genSpec <- gsub("genSpec4", "Mix3", WIDEfocalSeeds1$genSpec)
+WIDEfocalSeeds1$Overlap <- WIDEfocalSeeds1$AVoverlap
+WIDEfocalSeeds1$SeedOutput <- WIDEfocalSeeds1$seedOutput
 
 
 ```
@@ -187,16 +197,20 @@ lapply(seq_along(clist), function(i) {
 })
 
 # make overlap models
+
 lapply(seq_along(clist), function(i) {
+  png(paste0(names(clist[i]),"webs.png"), units='in', width=4, height=4, res=300)
   plotweb(clist[[i]],
           empty = TRUE,
           higher_color = cols,
           lower_color = cols,
-          text_size = 0.8,
+          text_size = 0.5,
           srt = 90)
 
-  title(main = names1[i], cex = 0.5)
+ # title(main = names1[i], cex = 0.5)
+  dev.off()
 })
+
 
 
 
@@ -272,6 +286,14 @@ ggplot(WIDEfocalSeedsPCA) +
 
 ggplot(speciesPCA) +
   geom_point(aes(x = PC2, y = PC1, color = genSpec))
+
+```
+```{r}
+WIDEfocalSeeds1 <- WIDEfocalSeeds %>% 
+  group_by(sp) %>%
+  mutate(fcseeds = mean(seedOutput))
+
+
 
 ```
 

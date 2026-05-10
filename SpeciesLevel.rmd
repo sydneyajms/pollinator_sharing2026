@@ -44,16 +44,20 @@ degreedf <- degreedf %>%
   rownames_to_column(var = "treatment") %>%
   inner_join(trtVersions, by = "treatment")
 
-# find PSI for each plant/poll in each treatment 
+# find node specialisation for each plant/poll in each treatment 
 
-PSImat <- matrix(NA, nrow = length(plist), ncol = length(allpolls), dimnames = list(names(plist), allpolls))
+nodemat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
 for (i in names(plist)) {
-  PSIval <- specieslevel(plist[[i]], level = "higher", index = "PSI")
-  PSImat[i,rownames(PSIval)] <- unlist(PSIval)
+  NSval <- nodespec(plist[[i]], inf.replace = NA)
+  plants <- NSval[[1]]
+  polls <- NSval[[2]]
+  NSnames <- names(c(plants,polls))
+  nodemat[i,NSnames] <- c(plants,polls)
 }
+
 # convert matrix to df 
-PSIdf <- as.data.frame(PSImat)
-PSIdf <- PSIdf %>%
+nodedf <- as.data.frame(nodemat)
+nodedf <- nodedf %>%
   rownames_to_column(var = "treatment")%>%
   inner_join(trtVersions, by = "treatment")
 
@@ -83,47 +87,59 @@ ddf_long <- ddf %>%
   pivot_longer(cols = -c(treatment, genSpec),
                names_to = "species", values_to = "specialization")
 
-PSIdf_long <- PSIdf %>% 
+nodedf_long <- nodedf %>% 
   pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "PSI")
+               names_to = "species", values_to = "ns")
 
 
 # join species level df to poll and seeds df 
 speciesDF <- pollsSeedsdf %>%
   rename(species = "Genus") %>%
   inner_join(degreedf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
-  inner_join(PSIdf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
+  inner_join(nodedf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
   inner_join(ddf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many")
 
 species_long <- speciesDF %>%
-  pivot_longer(cols = -c(genSpec, BP, treatment, specialization, ratio_seedsPerPlant, degree, PSI), values_to = "spec") %>%
+  pivot_longer(cols = -c(genSpec, BP, treatment, specialization, ratio_seedsPerPlant, degree, ns), values_to = "spec") %>%
   select(-name) %>%
-  select(genSpec, BP, treatment, spec, degree, specialization, PSI, ratio_seedsPerPlant)
+  select(genSpec, BP, treatment, spec, degree, specialization, ns, ratio_seedsPerPlant)
 ```
 
 visualize species level characteristics: DEGREE 
 
 ```{r}
-ggplot(speciesDF) +
-  geom_density(aes(x = degree, color = "degree")) +
-  geom_density(aes(x = ratio_seedsPerPlant, color = "reproductive output")) +
-  labs(x = "Amount", y = "density")
 
-ggplot(speciesDF, aes(x = degree, y = genSpec, group = genSpec)) + 
-  geom_density_ridges(aes(fill = genSpec)) +
+speciesDF %>%
+    pivot_longer(cols = c(specialization, ns, degree, ratio_seedsPerPlant),
+               names_to = "variable",
+               values_to = "value") %>%
+  
+  ggplot(aes(x = genSpec, y = value, fill = variable)) +
+  geom_col(position = "dodge") +
   theme(legend.position = "none") +
-  labs(x = "Degree", y = "Treatment")
+  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x = "Treatment", y = "Value", fill = "Variable")
 
-```
+# plot specalization for plants 
+ddf_long %>% 
+  filter(species %in% allplants)
+ggplot(ddf_long, aes(x = specialization, fill = genSpec)) +
+  #geom_histogram(alpha = 0.0, position = "identity", bins = 10) +
+  geom_density(linewidth = 0.2, alpha = 0.5)
 
-visualize species level characteristics: PSI 
+# plot degree for pollinators 
+ddf_long %>%
+  filter(species %in% allpolls)
+ggplot(ddf_long, aes(x = specialization, fill = genSpec)) +
+  #geom_histogram(alpha = 0.0, position = "identity", bins = 10) +
+  geom_density(linewidth = 0.2, alpha = 0.5)
 
-```{r}
-# plot PSI
-ggplot(PSIdf_long, aes(x = PSI, fill = genSpec)) +
-  geom_histogram(alpha = 0, position = "identity", bins = 20) +
-  geom_density(linewidth = 0.2, alpha = 0.5) +
-  facet_wrap(~ genSpec) 
+ggplot(species_long) +
+  #geom_histogram(alpha = 0.0, position = "identity", bins = 10) +
+  geom_point(aes(x = ns, y = ratio_seedsPerPlant, color = genSpec))
+  #facet_wrap(~genSpec)
 
 ```
 
@@ -153,12 +169,21 @@ Join network level to species level
 ```{r}
 allCHAR <- speciesDF %>%
   rename(seedOutput = "ratio_seedsPerPlant") %>%
-  inner_join(WIDEfocalSeeds, by = c("treatment", "seedOutput", "sp", "BP", "genSpec"), relationship = "many-to-many")
+  inner_join(WIDEfocalSeeds, by = c("treatment", "seedOutput", "sp", "BP", "genSpec"), relationship = "many-to-many") %>%
+  allCHAR <- allCHAR
 
-# visualise using allCHAR
+allCHAR$genSpec <- gsub("genOnly", "Generalists", allCHAR$genSpec)
+allCHAR$genSpec <- gsub("specOnly", "Specialists", allCHAR$genSpec)
+allCHAR$genSpec <- gsub("genSpec1", "Mix1", allCHAR$genSpec)
+allCHAR$genSpec <- gsub("genSpec3", "Mix2", allCHAR$genSpec)
+allCHAR$genSpec <- gsub("genSpec4", "Mix3", allCHAR$genSpec)
+allCHAR$Overlap <- allCHAR$AVoverlap
+allCHAR$SeedOutput <- allCHAR$seedOutput
 
-lm7 <- lm(allCHAR$specialization~allCHAR$AVoverlap)
-ggplot(allCHAR) +
-  geom_point(aes(x = AVoverlap, y = specialization, color = genSpec))+
-  geom_abline(intercept = coef(lm7)[1], slope = coef(lm7)[2], color = "red") 
+write.csv(allCHAR, file = "all_levels_characteristics.csv", col.names = FALSE)
+write.csv(WIDEfocalSeeds1, file = "Wide_focals.csv", col.names = FALSE)
+
+
+
+
 ```
