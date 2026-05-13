@@ -38,31 +38,9 @@ for (i in names(plist)) {
   bigmat[i,rownames(polls1)] <- unlist(polls1)
   bigmat[i,rownames(plants1)] <- unlist(plants1)
 }
-# convert matrix to df 
-degreedf <- as.data.frame(bigmat)
-degreedf <- degreedf %>%
-  rownames_to_column(var = "treatment") %>%
-  inner_join(trtVersions, by = "treatment")
 
-# find node specialisation for each plant/poll in each treatment 
-
-nodemat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
-for (i in names(plist)) {
-  NSval <- nodespec(plist[[i]], inf.replace = NA)
-  plants <- NSval[[1]]
-  polls <- NSval[[2]]
-  NSnames <- names(c(plants,polls))
-  nodemat[i,NSnames] <- c(plants,polls)
-}
-
-# convert matrix to df 
-nodedf <- as.data.frame(nodemat)
-nodedf <- nodedf %>%
-  rownames_to_column(var = "treatment")%>%
-  inner_join(trtVersions, by = "treatment")
 
 # find specialization for each plant/poll in each treatment
-
 dmat <- matrix(NA, nrow = length(plist), ncol = length(allsp), dimnames = list(names(plist), allsp))
 for (i in names(plist)) {
   d <- specieslevel(plist[[i]], level = "both", index = "d")
@@ -74,53 +52,21 @@ for (i in names(plist)) {
 
 # convert matrix to df 
 ddf <- as.data.frame(dmat)
-ddf <- ddf %>%
-  rownames_to_column(var = "treatment")%>%
-  inner_join(trtVersions, by = "treatment")
-
-# make dfs long 
-degreedf_long <- degreedf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "degree")
+ddf$genSpec<-substr(rownames(ddf),1,regexpr("_",rownames(ddf))-1)
+ddf$treatment <-rownames(ddf)
 
 ddf_long <- ddf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "specialization")
-
-nodedf_long <- nodedf %>% 
-  pivot_longer(cols = -c(treatment, genSpec),
-               names_to = "species", values_to = "ns")
-
+  pivot_longer(cols = -c(treatment, genSpec), names_to = "species", values_to = "specialization")
 
 # join species level df to poll and seeds df 
-speciesDF <- pollsSeedsdf %>%
-  rename(species = "Genus") %>%
-  inner_join(degreedf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
-  inner_join(nodedf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many") %>%
-  inner_join(ddf_long, by = c("treatment","species","genSpec"), relationship = "many-to-many")
-
-species_long <- speciesDF %>%
-  pivot_longer(cols = -c(genSpec, BP, treatment, specialization, ratio_seedsPerPlant, degree, ns), values_to = "spec") %>%
-  select(-name) %>%
-  select(genSpec, BP, treatment, spec, degree, specialization, ns, ratio_seedsPerPlant)
+ddf_long$sp <- ddf_long$species
+speciesDF <- seedsGrouped %>%
+  inner_join(ddf_long, by = c("genSpec","sp", "treatment"))
 ```
 
 visualize species level characteristics: DEGREE 
 
 ```{r}
-
-speciesDF %>%
-    pivot_longer(cols = c(specialization, ns, degree, ratio_seedsPerPlant),
-               names_to = "variable",
-               values_to = "value") %>%
-  
-  ggplot(aes(x = genSpec, y = value, fill = variable)) +
-  geom_col(position = "dodge") +
-  theme(legend.position = "none") +
-  scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
-  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  labs(x = "Treatment", y = "Value", fill = "Variable")
 
 # plot specalization for plants 
 ddf_long %>% 
@@ -136,10 +82,15 @@ ggplot(ddf_long, aes(x = specialization, fill = genSpec)) +
   #geom_histogram(alpha = 0.0, position = "identity", bins = 10) +
   geom_density(linewidth = 0.2, alpha = 0.5)
 
-ggplot(species_long) +
-  #geom_histogram(alpha = 0.0, position = "identity", bins = 10) +
-  geom_point(aes(x = ns, y = ratio_seedsPerPlant, color = genSpec))
-  #facet_wrap(~genSpec)
+lm24<- lm(speciesDF$ratio_seedsPerPlant~speciesDF$specialization)
+ggplot(speciesDF, aes(x = specialization, y = ratio_seedsPerPlant, col = genSpec)) +
+  geom_point() +
+   scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+ geom_abline(intercept = coef(lm24)[1], slope = coef(lm24)[2], color = "red") +
+ geom_text(aes(x = 0.75, y = 2, label = "p = 0.9642"), color = "red", vjust = -1) +
+  labs(x = "Plant Specialization", y = "Seed Output", color = "Treamtment")
 
 ```
 

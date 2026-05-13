@@ -189,11 +189,11 @@ names1 <- names(clist)
 
 # heat map per treatment 
 lapply(seq_along(clist), function(i) {
-  par(mar = rep(1, 4))
+  par(mar = rep(0,4), oma = rep(0,4))
   visweb(clist[[i]],
           square = "defined", box.col = "black", def.col = cols2, labsize = 0.8, text = "interaction", textcol = "black", NA.col = "white")
 
-  title(main = names1[i], cex = 0.2)
+ # title(main = names1[i], cex = 0.2, vjust = +10)
 })
 
 # make overlap models

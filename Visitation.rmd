@@ -22,7 +22,8 @@ library(fmsb)
 
 ```{r pressure, echo=FALSE}
 # Overlap against seed ratios for all treatments and species 
-
+WIDEfocalSeeds1<- read.csv("Wide_focals.csv")
+allCHAR<- read.csv("all_levels_characteristics.csv")
 
 lm1 = lm(WIDEfocalSeeds$seedOutput~WIDEfocalSeeds$AVoverlap)
 ggplot(WIDEfocalSeeds1, aes(x = AVoverlap, y = SeedOutput, color = genSpec, shape = sp)) +
@@ -169,6 +170,26 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
   stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = 0.8) +
   labs(x="Treatment", y = "Pollinator Visitation", fill = "Treatment") 
 
+#Total seed out put for all treatments 
+ggplot(WIDEfocalSeeds1, aes(x = factor(genSpec, levels = c("Generalists", "Mix1", "Specialists", "Mix2", "Mix3")), y= seedOutput, fill = sp)) +
+  geom_col(position = "stack") +
+  coord_flip() +
+  scale_fill_manual(values = c("#8B0069", "#A95F12", "#A38600", "#7BBB58")) +
+  theme_bw(paper = "#f5f6f0") + 
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x = "Treatment", y = "Seed Output", fill = "Focal Species")
+
+#nestedness and overlap for all treatments 
+lm26 <- lm(WIDEfocalSeeds1$nestedness~WIDEfocalSeeds1$AVoverlap)
+ggplot(WIDEfocalSeeds1, aes(x = AVoverlap, y = nestedness, color = genSpec)) +
+  geom_point(size = 3, alpha = 0.9) +
+  scale_colour_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw(paper = "#f5f6f0") + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  geom_abline(intercept = coef(lm26)[1], slope = coef(lm26)[2], color = "red") +
+  geom_text(aes(x = 0.75, y = 20, label = "p < 0.05"), color = "red", vjust = -1) +
+  labs(x = "Overlap", y = "Nestedness", color = "Treatment")
 
 
 ```
@@ -205,20 +226,80 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
   theme(strip.background = element_blank(), axis.text.x = element_blank())
 
 LongFOCAL %>%
- filter(variable == "Overlap" | variable == "H2" | variable == "SeedOutput") %>%
+ filter(variable == "nestedness" | variable == "SeedOutput") %>%
 ggplot(aes(x = genSpec, y = value, fill = genSpec))+
   geom_col(position = "dodge") +
   scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
   labs(x = "", y = "Value", fill = "Treatment") +
-  facet_wrap(~variable) +
   theme(strip.background = element_blank(), axis.text.x = element_blank())
 
 ggplot(LongFOCAL, aes(x = AVoverlap, y = log(value), fill = variable, color = variable)) +
   geom_smooth(aes(group = variable))
 
+totalmean <- mean(WIDEfocalSeeds1$seedOutput, na.rm = TRUE)
+ geom_hline(aes(yintercept = totalmean))
+
+
+    
+
   
 
 ```
-MIXES only 
+pie charts all communities 
+
+```{r}
+#Make pollinator Pie chart 
+pollCount <- pollinators %>%
+  count(Genus, name = "n_occurrences")
+
+vals <- pollCount$n_occurrences
+labs <- pollCount$Genus
+
+# hide labels for slices < 2% of the pie
+pct <- vals / sum(vals)
+labs[pct < 0.02] <- ""
+
+pie(vals, radius = 1, labels = labs, col = cols, border = "white", main = "Genera of pollinator visitors to all communities", cex = 0.5)
+
+# make plant pie chart 
+seedCount <- pollinators %>%
+  ungroup() %>%
+  count(sp, name = "n")
+
+vals <- seedCount$n
+labs <- seedCount$sp
+
+# hide labels for slices < 2% of the pie
+pct <- vals / sum(vals)
+labs[pct < 0.02] <- ""
+
+pie(vals, radius = 1, labels = labs, col = cols, border = "white", main = "Species of plants visited by pollinators", cex = 0.5) +
+   theme_bw(paper = "#f5f6f0") + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
+
+# sum all seeds by sp
+spseedsSUM <- bigseeds %>%
+  group_by(sp) %>%
+  filter(sp != "PC") %>%
+  summarise(total = sum(total.seeds))
+
+spseedsSUM$sp <- gsub("CA", "Clarkia amoena", spseedsSUM$sp)
+spseedsSUM$sp <- gsub("CP", "Clarkia purpurea", spseedsSUM$sp)
+spseedsSUM$sp <- gsub("ME", "Madia elegans", spseedsSUM$sp)
+spseedsSUM$sp <- gsub("MG", "Microsteris gracilis", spseedsSUM$sp)
+
+
+ggplot(spseedsSUM, aes(x = sp, y = total, fill = sp)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("#8B0069", "#A95F12", "#A38600", "#7BBB58")) +
+  theme_bw() + 
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(x = "Species", y = "Total number of seeds", fill = "Species")
+
+
+```
+
