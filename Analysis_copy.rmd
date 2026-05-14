@@ -173,6 +173,10 @@ WIDEfocalSeeds1$genSpec <- gsub("genSpec3", "Mix2", WIDEfocalSeeds1$genSpec)
 WIDEfocalSeeds1$genSpec <- gsub("genSpec4", "Mix3", WIDEfocalSeeds1$genSpec)
 WIDEfocalSeeds1$Overlap <- WIDEfocalSeeds1$AVoverlap
 WIDEfocalSeeds1$SeedOutput <- WIDEfocalSeeds1$seedOutput
+WIDEfocalSeeds1$sp <- gsub("CLAAMO", "Clarkia amoena", WIDEfocalSeeds1$sp)
+WIDEfocalSeeds1$sp <- gsub("CLAPUR", "Clarkia purpurea", WIDEfocalSeeds1$sp)
+WIDEfocalSeeds1$sp <- gsub("MADELE", "Madia elegans", WIDEfocalSeeds1$sp)
+WIDEfocalSeeds1$sp <- gsub("MICGRA", "Microsteris gracilis", WIDEfocalSeeds1$sp)
 
 
 ```

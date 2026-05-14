@@ -300,6 +300,29 @@ ggplot(spseedsSUM, aes(x = sp, y = total, fill = sp)) +
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
   labs(x = "Species", y = "Total number of seeds", fill = "Species")
 
+bigseeds %>%
+  group_by(sp) %>%
+  tally()
 
+
+ggplot(WIDEfocalSeeds1, aes(x = sp, y = seedOutput, color = genSpec)) +
+ stat_summary(fun = mean, geom = "point", size = 2) 
+
+meanssp <- WIDEfocalSeeds1 %>%
+  group_by(sp) %>%
+  summarise(meanseeds = mean(seedOutput, na.rm = TRUE))
+
+ggplot(WIDEfocalSeeds1, aes(x = sp, y = seedOutput, color = genSpec)) +
+  stat_summary(fun = mean, geom = "point", size = 5) +
+  scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+  geom_point(data = meanssp, aes(x = sp, y = meanseeds), color = "black") +
+  geom_hline(slope = 0, yintercept = 1, linewidth = 1, color = "black", linetype = "dotted") +
+  geom_text(aes(x = 4, y = 1, label = "positive pollinator impact"), color = "black", vjust = -1, cex = 3) +
+ # facet_wrap(~sp, scales = "free") +
+    #theme(strip.background = element_blank(), axis.text.x = element_blank(), vjust = -3) +
+  labs(x = "Focal Species", y = "Seed Output", color = "Treatment")
+  
 ```
 
