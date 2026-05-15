@@ -112,8 +112,8 @@ ggplot(WIDEfocalSeeds1, aes(x = AVoverlap, y = richness, color = genSpec)) +
   scale_colour_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-  geom_abline(intercept = coef(lm0)[1], slope = coef(lm0)[2], color = "red") +
-  geom_text(aes(x = 0.75, y = 6, label = "p = 0.6534"), color = "red", vjust = -1) +
+  #geom_abline(intercept = coef(lm0)[1], slope = coef(lm0)[2], color = "red") +
+  #geom_text(aes(x = 0.75, y = 6, label = "p = 0.6534"), color = "red", vjust = -1) +
   labs(x = "Overlap", y = "Pollinator Richness", color = "Treatment")
 
 ggplot(WIDEfocalSeeds1, aes(x = AVoverlap, y = total_visits, color = genSpec)) +
@@ -161,7 +161,7 @@ ggplot(WIDEfocalSeeds1, aes(x = genSpec, y = richness, color = genSpec)) +
   #geom_boxplot() +
   scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), axis.text.x = element_text(angle = 25, hjust = 1, cex = 0.2)) +
   stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = 0.5, hjust = -0.3, cex = 4) +
   labs(x="Treatment", y = "Richness", color = "Treatment") +
   guides(color = guide_legend(override.aes = list(text = NA, size = 0)))
@@ -172,10 +172,11 @@ ggplot(WIDEfocalSeeds1, aes(x = genSpec, y = total_visits, color = genSpec)) +
  # geom_boxplot() +
   scale_color_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), axis.text.x = element_text(angle = 25, hjust = 1, cex = 0.2)) +
   stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)), vjust = 0.5, hjust = -0.3, cex = 4) +
   labs(x="Treatment", y = "Visitation", color = "Treatment") +
   guides(color = guide_legend(override.aes = list(text = NA, size = 0)))
+
 
 #Total seed out put for all treatments 
 ggplot(WIDEfocalSeeds1, aes(x = factor(genSpec, levels = c("Generalists", "Mix1", "Specialists", "Mix2", "Mix3")), y= seedOutput, fill = sp)) +
@@ -220,25 +221,33 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
 LongFOCAL <- WIDEfocalSeeds1 %>%
   pivot_longer(cols = c(Overlap, SeedOutput, richness, total_visits, H2, nestedness),
                names_to = "variable",
-               values_to = "value")
+               values_to = "value") %>%
+  subset(select = -c(meanH2, fcseeds))
 
 LongFOCAL %>%
  filter(variable == "richness" | variable == "SeedOutput" | variable == "total_visits" | variable == "Overlap" ) %>%
-ggplot(aes(x = genSpec, y = value, fill = genSpec))+
+  group_by(genSpec, variable) %>%
+  mutate(meanVAL = mean(value, na.rm = TRUE)) %>%
+ggplot(aes(x = genSpec, y = meanVAL, fill = genSpec))+
   geom_col(position = "identity") +
   scale_fill_paletteer_d("nationalparkcolors::ArcticGates") +
   theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
   labs(x = "", y = "Value", fill = "Treatment") +
   facet_wrap(~variable, scales = "free") +
-  theme(strip.background = element_blank(), axis.text.x = element_blank())
+  theme(strip.background = element_blank(), axis.text.x = element_text(angle = 25, hjust = 1, cex = 0.2))
 
-ggplot(WIDEfocalSeeds1, aes(x = nestedness, y = total_visits, color = genSpec)) +
-  geom_point()
-
-totalmean <- mean(WIDEfocalSeeds1$seedOutput, na.rm = TRUE)
- geom_hline(aes(yintercept = totalmean))
-
+LongFOCAL %>%
+ filter(variable == "richness" | variable == "total_visits" ) %>%
+ggplot(aes(x = genSpec, y = value, color = genSpec))+
+stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, position = "dodge") +
+  stat_summary(fun = mean, geom = "point", size = 2) +
+  scale_colour_paletteer_d("nationalparkcolors::ArcticGates") +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), axis.text.x = element_text(angle = 25, hjust = 1, cex = 0.2)) +
+  facet_wrap(~variable, scales = "free") +
+  theme(strip.background = element_blank()) +
+    labs(x = "Treatments", y = "Value", color = "Treatment")
 
     
 
@@ -300,6 +309,10 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
 
 bigseeds %>%
   group_by(sp) %>%
+  tally()
+
+pollinators %>%
+  group_by(Genus) %>%
   tally()
 
 

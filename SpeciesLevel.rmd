@@ -61,7 +61,12 @@ ddf_long <- ddf %>%
 # join species level df to poll and seeds df 
 ddf_long$sp <- ddf_long$species
 speciesDF <- seedsGrouped %>%
-  inner_join(ddf_long, by = c("genSpec","sp", "treatment"))
+  inner_join(ddf_long, by = c("genSpec","sp", "treatment")) %>%
+  group_by(genSpec) %>%
+  mutate(meanSPEC = mean(specialization, na.rm = TRUE))
+
+meanSPEC <- as.data.frame(speciesDF$meanSPEC, speciesDF$genSpec,)
+meanH2 <- as.data.frame(WIDEfocalSeeds1$meanH2, WIDEfocalSeeds1$genSpec)
 ```
 
 visualize species level characteristics: DEGREE 
@@ -120,8 +125,7 @@ Join network level to species level
 ```{r}
 allCHAR <- speciesDF %>%
   rename(seedOutput = "ratio_seedsPerPlant") %>%
-  inner_join(WIDEfocalSeeds, by = c("treatment", "seedOutput", "sp", "BP", "genSpec"), relationship = "many-to-many") %>%
-  allCHAR <- allCHAR
+  inner_join(WIDEfocalSeeds, by = c("treatment", "seedOutput", "sp", "BP", "genSpec"), relationship = "many-to-many")
 
 allCHAR$genSpec <- gsub("genOnly", "Generalists", allCHAR$genSpec)
 allCHAR$genSpec <- gsub("specOnly", "Specialists", allCHAR$genSpec)

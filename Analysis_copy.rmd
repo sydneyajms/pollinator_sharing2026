@@ -149,14 +149,14 @@ Net_GroupDF <- nichedf %>%
 
   
 # combine all data 
-seedsGrouped <- seedsGrouped %>%
+seedsGrouped_wide <- seedsGrouped %>%
   pivot_wider(names_from = sp, values_from = ratio_seedsPerPlant) %>%
   inner_join(Net_GroupDF, by = "treatment")
 
 # pivot df wider for tidyness 
 spNames <- unique(seeds$sp)
 
-WIDEfocalSeeds <- seedsGrouped %>%
+WIDEfocalSeeds <- seedsGrouped_wide %>%
    pivot_longer(cols = all_of(spNames), names_to = "sp", values_to = "seedOutput") %>%
    rowwise() %>%
    mutate(AVoverlap = mean(c(pollOverlap,plantOverlap))) %>%
@@ -293,9 +293,11 @@ ggplot(speciesPCA) +
 
 ```
 ```{r}
-WIDEfocalSeeds1 <- WIDEfocalSeeds %>% 
+WIDEfocalSeeds1 <- WIDEfocalSeeds1 %>% 
   group_by(sp) %>%
-  mutate(fcseeds = mean(seedOutput))
+  mutate(fcseeds = mean(seedOutput)) %>%
+  group_by(genSpec) %>%
+  mutate(meanRICH = mean(richness), meanVIS = mean(total_visits))
 
 
 
