@@ -132,8 +132,8 @@ visitation <- data.frame(
 # calculate species richness
 richness <- vector(mode ="numeric", length =length(plist)) 
 for (i in seq_along(plist)){
-  this.logMat <- as.logical(plist[[i]])
-  richness[i] <- sum(this.logMat)
+  this.logMat <- colnames(plist[[i]])
+  richness[i] <- length(unique(this.logMat))
 }
 richness <- data.frame( 
   treatment = names(plist), 
